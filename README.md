@@ -400,6 +400,11 @@ O script imprime a chave **privada** (guarde em local seguro) e a **pública** (
 Guarde a privada fora do servidor: pendrive, gerenciador de senhas ou papel em cofre. Sem ela os
 backups existentes são definitivamente ilegíveis.
 
+Depois de copiar a chave privada, **remova o arquivo do computador**. Ela foi escrita em um
+arquivo temporário que o script apaga, mas enquanto estiver lá em `/tmp`, qualquer processo local
+consegue lê-la — e uma chave privada no disco da máquina de desenvolvimento não protege nada
+quando a VPS some.
+
 Gravar a pública no servidor:
 
 ```bash
@@ -446,8 +451,23 @@ proxy reverso que emite HTTPS automático (Let's Encrypt) para o domínio.
 
 ### 1. Provisionar a VPS
 
+O repositório precisa estar em `/opt/japacar` **antes** do provisionamento: o script usa esse
+diretório como base e roda o `docker compose build` a partir dele.
+
 ```bash
-cd scripts
+cd /opt/japacar/scripts
+APP_DOMAIN=japacar.duckdns.org \
+sudo ./provision.sh
+```
+
+O script instala Docker, cria os diretórios persistentes, gera o `Caddyfile` a partir do template,
+sobe os containers, instala o `age` e endurece o SSH. Em seguida, crie o primeiro usuário
+(veja a seção [Usuários](#usuários)) — não existe admin/admin123.
+
+Para ativar também o **backup por e-mail**, informe as três variáveis de credenciais na mesma
+execução:
+
+```bash
 APP_DOMAIN=japacar.duckdns.org \
 GMAIL_APP_PASSWORD=xxxx \
 BACKUP_FROM=x@gmail.com \
@@ -456,23 +476,34 @@ BACKUP_RECIPIENT='age1...' \
 sudo ./provision.sh
 ```
 
-O script instala Docker, cria os diretórios persistentes, gera o `Caddyfile` a partir do template,
-sobe os containers, instala o `age`, agenda o backup via cron e endurece o SSH.
+Sem elas, o app sobe normalmente e o script avisa que o backup por e-mail ficou desativado: as
+credenciais não são gravadas e o cron não é agendado. Nada de banco sai do servidor nesse estado —
+o `backup.sh` aborta antes de coletar dados se a chave `age` faltar. Para ativar depois, basta
+definir as variáveis e rodar o `provision.sh` novamente.
 
 `BACKUP_RECIPIENT` é a chave **pública** vinda do `gerar-chave-backup.sh` (ver seção
 "Criptografia do backup"). Sem ela o provisionamento avisa e o backup não sai.
 
-### 2. Deploy manual
+### 2. Atualizar uma versão já provisionada
+
+O código vem do GitHub, então a atualização é um `pull` seguido de um rebuild **no servidor**:
 
 ```bash
-# na máquina (build)
-docker compose build
-
-# no servidor, após copiar os arquivos para /opt/japacar
 cd /opt/japacar
-export SECRET_KEY="sua-chave-secreta"
+git pull --ff-only
+docker compose build
 docker compose up -d --remove-orphans
+docker compose ps
 ```
+
+O `SECRET_KEY` já está em `/opt/japacar/.env` (gerada no primeiro provisionamento, permissão 600)
+e **não** deve ser trocada a cada update: mudá-la invalida as sessões de quem estiver logado. Se
+perdeu o arquivo, regenere com
+`python3 -c "import secrets; print(secrets.token_urlsafe(64))"` e grave em `.env`.
+
+> **Por que o build fica no servidor:** compilar a imagem local consome RAM da máquina de
+> desenvolvimento. Com 8 GB e o editor aberto, o build derruba o ambiente de trabalho. Na VPS o
+> build roda com folga e as wheels das dependências existem para ARM — nada é compilado do zero.
 
 Estrutura em produção:
 
@@ -508,6 +539,13 @@ versionada junto com os backups, a criptografia deixa de proteger o que quer que
 - **Cifra com age** e só então envia por e-mail (`.tar.gz.age`).
 - Rodada só a cada **14 dias** (controlado por `.last_backup`) e mantém os **4 backups mais recentes**.
 - O tar.gz em claro é apagado assim que a cifragem termina; se a cifragem falhar, nada é enviado.
+
+> **O cron só é agendado se o `provision.sh` tiver sido executado com as credenciais de e-mail.**
+> Se a instalação foi feita sem elas, o backup automático **não está rodando** — confirme com
+> `sudo crontab -l`. Para ativar, rode o `provision.sh` de novo com as três variáveis e a chave
+> pública (veja [Implantação em produção](#implantação-em-produção-docker--caddy)). Enquanto o
+> backup não estiver configurado, não existe cópia dos dados: um `rm` acidental ou uma perda da
+> VPS significa perder o banco sem volta.
 
 ### Backup manual
 
