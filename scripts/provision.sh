@@ -1,13 +1,26 @@
 #!/usr/bin/env bash
 # Provisiona a VPS para rodar o JAPACAR em Docker + Caddy (HTTPS Let's Encrypt).
 # Uso (como root):
-#   APP_DOMAIN=japacar.duckdns.org GMAIL_APP_PASSWORD=xxxx BACKUP_FROM=x@gmail.com BACKUP_TO=x@gmail.com ./provision.sh
+#   APP_DOMAIN=japacar.duckdns.org ./provision.sh
+#
+# Com backup por e-mail (opcional; as três variáveis abaixo podem ser omitidas
+# para adiar o backup — nesse caso o app sobe sem cron de backup):
+#   APP_DOMAIN=japacar.duckdns.org \
+#   GMAIL_APP_PASSWORD=xxxx BACKUP_FROM=x@gmail.com BACKUP_TO=x@gmail.com \
+#   BACKUP_RECIPIENT='age1...' \
+#   sudo ./provision.sh
 set -euo pipefail
 
 : "${APP_DOMAIN:?APP_DOMAIN obrigatorio (ex: japacar.duckdns.org)}"
-: "${GMAIL_APP_PASSWORD:?GMAIL_APP_PASSWORD obrigatoria (senha de app do Gmail)}"
-: "${BACKUP_FROM:?BACKUP_FROM obrigatorio (e-mail remetente)}"
-: "${BACKUP_TO:?BACKUP_TO obrigatorio (e-mail destinatario)}"
+
+# Credenciais de e-mail do backup são opcionais (adiadas por ~1 mês).
+# Quando não informadas, o backup não é configurado, mas o provisionamento
+# do app continua. Isso evita que o script aborte no primeiro deploy sem a
+# senha de app do Gmail.
+BACKUP_OPCIONAL=1
+: "${GMAIL_APP_PASSWORD:=}"
+: "${BACKUP_FROM:=}"
+: "${BACKUP_TO:=}"
 
 BASE=/opt/japacar
 export DEBIAN_FRONTEND=noninteractive
@@ -74,15 +87,24 @@ log "Gerando Caddyfile para $APP_DOMAIN"
 sed "s/__DOMAIN__/$APP_DOMAIN/g" "$BASE/Caddyfile.template" > "$BASE/Caddyfile"
 chmod 644 "$BASE/Caddyfile"
 
-log "Credenciais de backup (permissao 600)"
-umask 077
-cat > "$BASE/scripts/.backup-credentials" <<EOF
+# Credenciais de backup (permissao 600). Gravadas apenas se as três variáveis
+# foram informadas; caso contrário, o backup fica desativado com um aviso.
+if [[ -n "$GMAIL_APP_PASSWORD" && -n "$BACKUP_FROM" && -n "$BACKUP_TO" ]]; then
+    log "Credenciais de backup (permissao 600)"
+    umask 077
+    cat > "$BASE/scripts/.backup-credentials" <<EOF
 GMAIL_APP_PASSWORD='$GMAIL_APP_PASSWORD'
 BACKUP_FROM='$BACKUP_FROM'
 BACKUP_TO='$BACKUP_TO'
 EOF
-chmod 600 "$BASE/scripts/.backup-credentials"
-umask 022
+    chmod 600 "$BASE/scripts/.backup-credentials"
+    umask 022
+else
+    BACKUP_OPCIONAL=0
+    log "AVISO: GMAIL_APP_PASSWORD / BACKUP_FROM / BACKUP_TO nao informadas."
+    log "Backup por e-mail DESATIVADO nesta instalacao."
+    log "Para ativar depois, defina as variaveis e rode provision.sh novamente."
+fi
 
 # A chave PUBLICA de destino do backup. A privada nao vem para ca: e o que
 # faz o backup valer algo, ja que ela nunca fica junto dos dados.
@@ -93,10 +115,12 @@ if [[ -n "${BACKUP_RECIPIENT:-}" ]]; then
     chmod 600 "$RECIPIENT_FILE"
     umask 022
     log "Chave publica de backup gravada em $RECIPIENT_FILE"
-else
+elif [[ "$BACKUP_OPCIONAL" -eq 1 ]]; then
     log "AVISO: BACKUP_RECIPIENT nao informado."
     log "O backup sera ABORTADO ate voce rodar scripts/gerar-chave-backup.sh"
     log "na sua maquina e gravar a chave publica em $RECIPIENT_FILE"
+else
+    log "Backup por e-mail desativado (sem credenciais); chave publica ignorada."
 fi
 
 log "Build da imagem e subida dos containers"
@@ -130,9 +154,16 @@ else
         --login "$ADMIN_LOGIN" --perfil ADMIN --senha "${ADMIN_PASSWORD:-}"
 fi
 
-log "Cron de backup (verifica diario, envia a cada 14 dias)"
-CRON_LINE="14 6 * * * $BASE/scripts/backup.sh >> /var/log/japacar-backup.log 2>&1"
-( crontab -l 2>/dev/null | grep -v "$BASE/scripts/backup.sh" || true; echo "$CRON_LINE" ) | crontab -
+# O cron so e agendado quando as credenciais existem. Sem elas, nao ha envio
+# possivel e agendar o backup.sh seria gerar um aviso por dia no log sem
+# perspectiva de resolver — pior do que nenhum agendamento.
+if [[ "$BACKUP_OPCIONAL" -eq 1 ]]; then
+    log "Cron de backup (verifica diario, envia a cada 14 dias)"
+    CRON_LINE="14 6 * * * $BASE/scripts/backup.sh >> /var/log/japacar-backup.log 2>&1"
+    ( crontab -l 2>/dev/null | grep -v "$BASE/scripts/backup.sh" || true; echo "$CRON_LINE" ) | crontab -
+else
+    log "Cron de backup NAO agendado (credenciais de e-mail ausentes)."
+fi
 
 log "Endurecendo SSH (sem senha, sem root)"
 sed -i -E 's/^#?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
