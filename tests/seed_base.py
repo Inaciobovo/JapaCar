@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from app.cli import gerar_hash
 from app.extensions import db
 from app.models import (
     Atendimento,
@@ -8,8 +9,52 @@ from app.models import (
     Despesa,
     ItemServico,
     Orcamento,
+    Usuario,
     Veiculo,
 )
+
+# Credenciais usadas só pelos testes, contra um banco descartável criado em
+# tmp_path. São propositalmente fracas porque o objetivo é a ergonomia do
+# fixture (`login` faz login direto), não testar força de senha — isso é feito
+# em test_security.py. Nenhum destes usuários nunca toca um banco real: o
+# `flask usuario-criar` de produção é outro caminho e rejeita estas senhas via
+# `senha_forte`.
+USUARIOS_TESTE = (
+    ("Administrador", "admin", "admin123", "ADMIN"),
+    ("Mecânico", "mecanico", "mecanico123", "MECANICO"),
+)
+
+
+def seed_usuarios_teste(app):
+    """Cria os usuários que os fixtures de login usam.
+
+    Antes a suíte copiava o `japacar.db` da raiz só para trazer estes dois
+    registros. Como `*.db` está no .gitignore, o arquivo não existe em um clone
+    limpo e a suíte inteira quebrava com FileNotFoundError. O schema já é
+    criado por `db.create_all()` dentro de `create_app`, então o que faltava
+    eram só os usuários — e eles são criados aqui.
+
+    Idempotente: não recria se o login já existir.
+    """
+    with app.app_context():
+        for nome, login, senha, perfil in USUARIOS_TESTE:
+            if (
+                db.session.execute(
+                    db.select(Usuario).where(Usuario.login == login)
+                ).scalar_one_or_none()
+                is not None
+            ):
+                continue
+            db.session.add(
+                Usuario(
+                    nome=nome,
+                    login=login,
+                    senha=gerar_hash(senha),
+                    perfil=perfil,
+                    ativo=True,
+                )
+            )
+        db.session.commit()
 
 
 def seed_dados_base(app):

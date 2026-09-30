@@ -1,5 +1,4 @@
 import re
-import shutil
 from pathlib import Path
 
 import pytest
@@ -7,7 +6,7 @@ from flask.testing import FlaskClient
 
 from app import create_app
 
-from tests.seed_base import seed_dados_base
+from tests.seed_base import seed_dados_base, seed_usuarios_teste
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -16,19 +15,23 @@ TOKEN_RE = re.compile(r'name="csrf_token"\s+value="([^"]+)"')
 
 @pytest.fixture
 def app(tmp_path):
-    db_copy = tmp_path / "japacar.db"
-    shutil.copyfile(BASE_DIR / "japacar.db", db_copy)
+    # O banco nasce vazio em tmp_path e o schema e criado por `db.create_all()`
+    # dentro de `create_app`. Nada e copiado do repositorio: `*.db` esta no
+    # .gitignore, entao depender de um arquivo versionado quebraria a suite em
+    # qualquer clone limpo.
+    db_path = tmp_path / "japacar.db"
     uploads = tmp_path / "uploads"
     uploads.mkdir()
 
     application = create_app(
         "dev",
-        SQLALCHEMY_DATABASE_URI=f"sqlite:///{db_copy}",
+        SQLALCHEMY_DATABASE_URI=f"sqlite:///{db_path}",
         TESTING=True,
         WTF_CSRF_ENABLED=False,
         SEED_ON_STARTUP=False,
         UPLOAD_DIR=str(uploads),
     )
+    seed_usuarios_teste(application)
     seed_dados_base(application)
     return application
 
@@ -84,8 +87,7 @@ class ClienteHttps(FlaskClient):
 
 @pytest.fixture
 def app_seg(tmp_path):
-    db_copy = tmp_path / "seg.db"
-    shutil.copyfile(BASE_DIR / "japacar.db", db_copy)
+    db_path = tmp_path / "seg.db"
     uploads = tmp_path / "uploads"
     uploads.mkdir()
 
@@ -95,7 +97,7 @@ def app_seg(tmp_path):
     application = create_app(
         "prod",
         SECRET_KEY="chave-de-teste-com-tamanho-suficiente-para-producao-1234",
-        SQLALCHEMY_DATABASE_URI=f"sqlite:///{db_copy}",
+        SQLALCHEMY_DATABASE_URI=f"sqlite:///{db_path}",
         TESTING=True,
         WTF_CSRF_ENABLED=True,
         SEED_ON_STARTUP=False,
@@ -103,6 +105,7 @@ def app_seg(tmp_path):
         RATELIMIT_ENABLED=True,
     )
     application.test_client_class = ClienteHttps
+    seed_usuarios_teste(application)
     seed_dados_base(application)
     return application
 
