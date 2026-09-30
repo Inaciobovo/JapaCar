@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+{% include 'fragments/head.html' %}
+<body class="{{ deviceClass }}">
+{% import 'fragments/nav.html' as nav with context %}
+{{ nav.sidebar() }}
+
+<div class="d-flex flex-column flex-lg-row w-100">
+    <div class="flex-grow-1 d-flex flex-column" style="min-height:100vh;">
+        {% include 'fragments/header.html' %}
+
+        <main class="app-main flex-grow-1">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="d-flex align-items-center">
+                    <a href="/atendimentos" class="btn btn-sm btn-outline-secondary me-2 no-print">
+                        <i class="bi bi-arrow-left"></i>
+                    </a>
+                    <h1 class="page-title mb-0">Serviço #{{ atendimento.id }}</h1>
+                    <span class="badge badge-status ms-2 {% if atendimento.status == 'EM_ANDAMENTO' %}badge-em-andamento{% elif atendimento.status == 'CONCLUIDO' %}badge-concluido{% else %}badge-cancelado{% endif %}">{{ atendimento.status_descricao }}</span>
+                </div>
+                <div class="d-flex gap-2">
+                    {% if atendimento.status == 'EM_ANDAMENTO' %}
+                    <a href="/atendimentos/{{ atendimento.id }}/finalizar" class="btn btn-sm btn-success no-print">
+                        <i class="bi bi-check2-circle me-1"></i> Finalizar serviço
+                    </a>
+                    {% elif atendimento.status == 'CONCLUIDO' %}
+                    <a href="/atendimentos/{{ atendimento.id }}/finalizar" class="btn btn-sm btn-outline-success no-print">
+                        <i class="bi bi-cash-coin me-1"></i> Pagamentos
+                    </a>
+                    {% endif %}
+                    <a href="/atendimentos/{{ atendimento.id }}/editar" class="btn btn-sm btn-outline-secondary no-print">
+                        <i class="bi bi-pencil me-1"></i> Editar serviço
+                    </a>
+                </div>
+            </div>
+
+            {% include 'fragments/alerts.html' %}
+
+            <div class="row">
+                <div class="col-12 col-lg-7">
+                    <div class="card-custom">
+                        <h6 class="fw-bold mb-3"><i class="bi bi-tools me-1"></i> Dados do serviço</h6>
+                        <ul class="detail-list">
+                            <li>
+                                <span class="detail-label">Cliente</span>
+                                <span class="detail-value">{{ atendimento.veiculo.cliente.nome }}</span>
+                            </li>
+                            <li>
+                                <span class="detail-label">Veículo</span>
+                                <span class="detail-value">{{ atendimento.veiculo.modelo }} {{ atendimento.veiculo.marca }} · {{ atendimento.veiculo.placa }}</span>
+                            </li>
+                            <li>
+                                <span class="detail-label">Data de entrada</span>
+                                <span class="detail-value">{{ atendimento.data_entrada|dt }}</span>
+                            </li>
+                            {% if atendimento.data_saida %}
+                            <li>
+                                <span class="detail-label">Data de saída</span>
+                                <span class="detail-value">{{ atendimento.data_saida|dt }}</span>
+                            </li>
+                            {% endif %}
+                            {% if atendimento.mecanico_responsavel %}
+                            <li>
+                                <span class="detail-label">Mecânico responsável</span>
+                                <span class="detail-value">{{ atendimento.mecanico_responsavel }}</span>
+                            </li>
+                            {% endif %}
+                            {% if atendimento.conferente %}
+                            <li>
+                                <span class="detail-label">Conferente</span>
+                                <span class="detail-value">{{ atendimento.conferente }}</span>
+                            </li>
+                            {% endif %}
+                            {% if atendimento.checklist_entrada %}
+                            <li>
+                                <span class="detail-label">Checklist vinculado</span>
+                                <span class="detail-value">
+                                    <a href="/checklists/{{ atendimento.checklist_entrada.id }}" class="text-decoration-none">Checklist #{{ atendimento.checklist_entrada.id }}</a>
+                                </span>
+                            </li>
+                            {% endif %}
+                        </ul>
+
+                        <h6 class="fw-bold mt-4 mb-2">Observações</h6>
+                        <p class="mb-0">{{ atendimento.observacoes or '— Sem observações —' }}</p>
+                    </div>
+                </div>
+
+                <div class="col-12 col-lg-5">
+                    <div class="card-custom">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold mb-0"><i class="bi bi-file-earmark-text me-1"></i> Orçamentos</h6>
+                            {% if atendimento.status != 'CANCELADO' %}
+                            <a href="/orcamentos/novo?atendimentoId={{ atendimento.id }}"
+                               class="btn btn-sm btn-japacar">
+                                <i class="bi bi-plus-lg me-1"></i> Adicionar
+                            </a>
+                            {% endif %}
+                        </div>
+                        {% if not orcamentos %}
+                        <p class="text-muted small mb-0">Nenhum orçamento para este serviço.</p>
+                        {% else %}
+                        <div class="list-group list-group-flush">
+                            {% for orc in orcamentos %}
+                            <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                                <a href="/orcamentos/{{ orc.id }}/editar"
+                                   class="text-decoration-none flex-grow-1 me-2">
+                                    <div class="fw-semibold text-body">Orçamento #{{ orc.id }}</div>
+                                    <small class="text-muted">R$ {{ orc.valor_total|brl }}</small>
+                                    <div>
+                                        {% if orc.status_pagamento == 'PAGO' %}
+                                        <small class="text-success">
+                                            <i class="bi bi-check-circle-fill me-1"></i>Pago
+                                            {% if orc.forma_pagamento %}({{ FORMA_PAGAMENTO|descricao(orc.forma_pagamento) }}){% endif %}
+                                        </small>
+                                        {% else %}
+                                        <small class="text-warning">
+                                            <i class="bi bi-clock-history me-1"></i>Pendente
+                                        </small>
+                                        {% endif %}
+                                    </div>
+                                </a>
+                                <a href="/orcamentos/{{ orc.id }}/pdf"
+                                   class="btn btn-sm btn-outline-danger me-2" title="Baixar PDF">
+                                    <i class="bi bi-filetype-pdf"></i>
+                                </a>
+                                <span class="badge badge-status {% if orc.status == 'PENDENTE' %}badge-pendente{% elif orc.status == 'APROVADO' or orc.status == 'CONCLUIDO' %}badge-aprovado{% elif orc.status == 'REJEITADO' %}badge-rejeitado{% else %}badge-inativo{% endif %}">{{ orc.status_descricao }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-custom text-center">
+                <div class="row g-2 no-print">
+                    <div class="col-12 col-md-4">
+                        <a href="/atendimentos/{{ atendimento.id }}/editar" class="btn btn-outline-primary w-100">
+                            <i class="bi bi-pencil me-1"></i> Editar serviço
+                        </a>
+                    </div>
+                    {% if atendimento.status != 'CANCELADO' %}
+                    <div class="col-12 col-md-4">
+                        <a href="/orcamentos/novo?atendimentoId={{ atendimento.id }}"
+                           class="btn btn-japacar w-100">
+                            <i class="bi bi-file-earmark-text me-1"></i> Adicionar orçamento
+                        </a>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <form action="/atendimentos/{{ atendimento.id }}/inativar" method="post"
+                              onsubmit="return confirm('Inativar este serviço? O status será alterado para cancelado.');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <button type="submit" class="btn btn-outline-danger w-100">
+                                <i class="bi bi-x-circle me-1"></i> Inativar serviço
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </main>
+
+        <footer class="text-center text-muted small py-3 no-print">
+            JAPACAR · Sistema de gestão para oficina mecânica
+        </footer>
+    </div>
+</div>
+
+{{ nav.bottomNav() }}
+{% include 'fragments/scripts.html' %}
+</body>
+</html>

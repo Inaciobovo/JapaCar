@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+{% include 'fragments/head.html' %}
+<body class="{{ deviceClass }}">
+{% import 'fragments/nav.html' as nav with context %}
+{{ nav.sidebar() }}
+
+<div class="d-flex flex-column flex-lg-row w-100">
+    <div class="flex-grow-1 d-flex flex-column" style="min-height:100vh;">
+        {% include 'fragments/header.html' %}
+
+        <main class="app-main flex-grow-1">
+            <div class="d-flex align-items-center mb-2">
+                <a href="/despesas" class="btn btn-sm btn-outline-secondary me-2 no-print">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <h1 class="page-title">{% if despesa.id %}Editar Despesa{% else %}Nova Despesa{% endif %}</h1>
+            </div>
+            <p class="page-subtitle">Registre a saída financeira da oficina</p>
+
+            {% include 'fragments/alerts.html' %}
+
+            {% import 'fragments/form-actions.html' as ui %}
+            <form action="/despesas/salvar" method="post" class="form-card">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" name="id" value="{{ despesa.id or '' }}"/>
+
+                <div class="mb-3">
+                    <label class="form-label-custom">Descrição *</label>
+                    <input type="text" name="descricao" value="{{ despesa.descricao }}" class="form-control" required maxlength="500"
+                           placeholder="Ex: Compra de óleo lubrificante">
+                </div>
+
+                <div class="row">
+                    <div class="col-6 col-md-4 mb-3">
+                        <label class="form-label-custom">Valor (R$) *</label>
+                        <input type="text" name="valorText" class="form-control valor" required
+                               min="0.01" placeholder="0,00"
+                               value="{{ despesa.valor|brl if despesa.valor is not none else '' }}">
+                    </div>
+                    <div class="col-6 col-md-4 mb-3">
+                        <label class="form-label-custom">Data *</label>
+                        <input type="date" name="data" class="form-control" required
+                               value="{{ despesa.data.strftime('%Y-%m-%d') if despesa.data else '' }}">
+                    </div>
+                    <div class="col-12 col-md-4 mb-3">
+                        <label class="form-label-custom">Categoria *</label>
+                        <select name="categoria" class="form-select" required>
+                            <option value="">Selecione...</option>
+                            {% for chave, texto in categorias %}
+                            <option value="{{ chave }}" {% if despesa.categoria == chave %}selected{% endif %}>{{ texto }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label-custom">Observações</label>
+                    <textarea name="observacoes" class="form-control" rows="3"
+                              placeholder="Detalhes adicionais da despesa">{{ despesa.observacoes or '' }}</textarea>
+                </div>
+
+                {{ ui.form_actions(cancelar_url='/despesas') }}
+            </form>
+        </main>
+
+        <footer class="text-center text-muted small py-3 no-print">
+            JAPACAR · Sistema de gestão para oficina mecânica
+        </footer>
+    </div>
+</div>
+
+{{ nav.bottomNav() }}
+{% include 'fragments/scripts.html' %}
+</body>
+</html>

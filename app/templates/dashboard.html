@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+{% include 'fragments/head.html' %}
+<body class="{{ deviceClass }} d-flex flex-column min-vh-100">
+{% import 'fragments/nav.html' as nav with context %}
+{{ nav.sidebar() }}
+
+<div class="d-flex flex-column flex-lg-row w-100">
+    <div class="flex-grow-1 d-flex flex-column" style="min-height:100vh;">
+        {% include 'fragments/header.html' %}
+
+        <main class="app-main flex-grow-1">
+            <div class="welcome d-flex align-items-center justify-content-between mb-3">
+                <div>
+                    <h1 class="page-title mb-0">Bem-vindo!</h1>
+                    <p class="page-subtitle mb-0">{{ current_user.login }}</p>
+                </div>
+                <span class="d-none d-sm-block badge badge-brand">Oficina JAPACAR</span>
+            </div>
+
+            {% include 'fragments/alerts.html' %}
+
+            <!-- Atalhos rápidos -->
+            <div class="quick-actions">
+                <a class="quick-action" href="/checklists/nova">
+                    <span class="qa-icon"><i class="bi bi-clipboard-check"></i></span>
+                    <span class="qa-label">Checklist de Entrada</span>
+                </a>
+                <a class="quick-action" href="/atendimentos">
+                    <span class="qa-icon blue"><i class="bi bi-tools"></i></span>
+                    <span class="qa-label">Painel de Serviços</span>
+                </a>
+                <a class="quick-action" href="/orcamentos/novo">
+                    <span class="qa-icon orange"><i class="bi bi-file-earmark-text"></i></span>
+                    <span class="qa-label">Novo Orçamento</span>
+                </a>
+                <a class="quick-action" href="/despesas/nova">
+                    <span class="qa-icon green"><i class="bi bi-cash-stack"></i></span>
+                    <span class="qa-label">Nova Despesa</span>
+                </a>
+            </div>
+
+            <!-- Indicadores financeiros -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-label">Receitas (mês)</span>
+                    <span class="stat-value receita">{{ dash.receitasMes|brl }}</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Despesas (mês)</span>
+                    <span class="stat-value despesa">{{ dash.despesasMes|brl }}</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Saldo (mês)</span>
+                    <span class="stat-value saldo">{{ dash.saldoMes|brl }}</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Em andamento</span>
+                    <span class="stat-value">{{ dash.atendimentosEmAndamento }}</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Orçamentos pendentes</span>
+                    <span class="stat-value">{{ dash.orcamentosPendentes }}</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Clientes ativos</span>
+                    <span class="stat-value">{{ dash.clientesAtivos }}</span>
+                </div>
+            </div>
+
+            {% if dash.resumoMensal %}
+            <div class="card-custom">
+                <div class="d-flex flex-wrap align-items-center justify-content-between mb-2">
+                    <h6 class="fw-bold mb-0"><i class="bi bi-bar-chart me-1"></i> Receitas × Despesas</h6>
+                    <span class="text-muted small">últimos 6 meses</span>
+                </div>
+                {% set ns = namespace(maximo=1) %}
+                {% for m in dash.resumoMensal %}
+                    {% if m.receitas > ns.maximo %}{% set ns.maximo = m.receitas %}{% endif %}
+                    {% if m.despesas > ns.maximo %}{% set ns.maximo = m.despesas %}{% endif %}
+                {% endfor %}
+                <div class="mini-chart">
+                    {% for m in dash.resumoMensal %}
+                    <div class="mini-chart-col" title="{{ m.mes }} — Receitas: R$ {{ m.receitas|brl }} | Despesas: R$ {{ m.despesas|brl }}">
+                        <div class="mini-chart-bars">
+                            <div class="mini-chart-bar bar-receita" style="height: {{ (m.receitas / ns.maximo * 100)|int }}%"></div>
+                            <div class="mini-chart-bar bar-despesa" style="height: {{ (m.despesas / ns.maximo * 100)|int }}%"></div>
+                        </div>
+                        <span class="mini-chart-label">{{ m.mes }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="mini-chart-legend">
+                    <span class="legend-item"><span class="legend-color legend-receita"></span> Receitas</span>
+                    <span class="legend-item"><span class="legend-color legend-despesa"></span> Despesas</span>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="row">
+                <div class="col-12 col-lg-7">
+                    {% if not atendimentos %}
+                        <div class="card-custom text-center py-5">
+                            <i class="bi bi-tools display-4 text-muted"></i>
+                            <p class="text-muted mt-3 mb-1">Nenhum atendimento em andamento.</p>
+                            <a href="/checklists/nova" class="btn btn-sm mt-1 btn-japacar">Abrir checklist de entrada</a>
+                        </div>
+                    {% else %}
+                    <div class="card-custom">
+                        <h6 class="fw-bold mb-3"><i class="bi bi-tools me-1"></i> Atendimentos em andamento</h6>
+                        <div class="list-group list-group-flush">
+                            {% for at in atendimentos %}
+                            <a href="/atendimentos/{{ at.id }}"
+                               class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                                <div>
+                                    <div class="fw-semibold">{{ at.veiculo.modelo }} {{ at.veiculo.marca }}</div>
+                                    <small class="text-muted">{{ at.veiculo.placa }} · {{ at.veiculo.cliente.nome }}</small>
+                                </div>
+                                <span class="badge badge-status badge-em-andamento">Em andamento</span>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="col-12 col-lg-5">
+                    {% if dash.topDespesasPorCategoria %}
+                    <div class="card-custom">
+                        <h6 class="fw-bold mb-3"><i class="bi bi-pie-chart me-1"></i> Despesas por categoria (mês)</h6>
+                        {% for gasto in dash.topDespesasPorCategoria %}
+                        <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                            <span class="text-secondary">{{ gasto.categoria }}</span>
+                            <span class="fw-semibold">{{ gasto.total|brl }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </main>
+
+        <footer class="text-center text-muted small py-3 no-print">
+            JAPACAR · Sistema de gestão para oficina mecânica
+        </footer>
+    </div>
+</div>
+
+{{ nav.bottomNav() }}
+{% include 'fragments/scripts.html' %}
+</body>
+</html>

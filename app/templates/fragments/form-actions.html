@@ -1,0 +1,10 @@
+{% macro form_actions(action_label='Salvar', cancelar_url='/') %}
+<div class="form-actions">
+    <button type="submit" class="btn btn-japacar">
+        <i class="bi bi-check-lg me-1"></i> {{ action_label }}
+    </button>
+    <a href="{{ cancelar_url }}" class="btn btn-outline-secondary">
+        <i class="bi bi-x-lg me-1"></i> Cancelar
+    </a>
+</div>
+{% endmacro %}

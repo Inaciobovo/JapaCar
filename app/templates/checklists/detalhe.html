@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+{% include 'fragments/head.html' %}
+<body class="{{ deviceClass }}">
+{% import 'fragments/nav.html' as nav with context %}
+{{ nav.sidebar() }}
+
+<div class="d-flex flex-column flex-lg-row w-100">
+    <div class="flex-grow-1 d-flex flex-column" style="min-height:100vh;">
+        {% include 'fragments/header.html' %}
+
+        <main class="app-main flex-grow-1">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="d-flex align-items-center">
+                    <a href="/checklists" class="btn btn-sm btn-outline-secondary me-2 no-print">
+                        <i class="bi bi-arrow-left"></i>
+                    </a>
+                    <h1 class="page-title mb-0">Checklist #{{ checklist.id }}</h1>
+                </div>
+                <a href="/checklists/{{ checklist.id }}/editar" class="btn btn-sm btn-outline-secondary no-print">
+                    <i class="bi bi-pencil me-1"></i> Editar
+                </a>
+            </div>
+            <p class="page-subtitle">Registro das condições do veículo na entrada</p>
+
+            {% include 'fragments/alerts.html' %}
+
+            <div class="row">
+                <div class="col-12 col-lg-7">
+                    <div class="card-custom">
+                        <h6 class="fw-bold mb-3"><i class="bi bi-clipboard-check me-1"></i> Dados do checklist</h6>
+                        <ul class="detail-list">
+                            <li>
+                                <span class="detail-label">Data de entrada</span>
+                                <span class="detail-value">{{ checklist.data_entrada|dt }}</span>
+                            </li>
+                            <li>
+                                <span class="detail-label">Responsável</span>
+                                <span class="detail-value">{{ checklist.responsavel }}</span>
+                            </li>
+                            <li>
+                                <span class="detail-label">Quilometragem</span>
+                                <span class="detail-value">{{ checklist.quilometragem ~ ' km' if checklist.quilometragem is not none else '-' }}</span>
+                            </li>
+                            <li>
+                                <span class="detail-label">Nível de combustível</span>
+                                <span class="detail-value">{{ NIVEL_COMBUSTIVEL|descricao(checklist.nivel_combustivel) if checklist.nivel_combustivel else '-' }}</span>
+                            </li>
+                        </ul>
+
+                        <h6 class="fw-bold mt-4 mb-2">Condições da lataria</h6>
+                        <p class="mb-0">{{ checklist.condicoes_lataria or '— Sem observações —' }}</p>
+
+                        <h6 class="fw-bold mt-3 mb-2">Observações gerais</h6>
+                        <p class="mb-0">{{ checklist.observacoes_gerais or '— Sem observações —' }}</p>
+                    </div>
+                </div>
+
+                <div class="col-12 col-lg-5">
+                    <div class="card-custom">
+                        <h6 class="fw-bold mb-1"><i class="bi bi-car-front me-1"></i> Veículo</h6>
+                        <ul class="detail-list">
+                            <li>
+                                <span class="detail-label">Placa</span>
+                                <span class="detail-value fw-bold text-uppercase">{{ checklist.veiculo.placa }}</span>
+                            </li>
+                            <li>
+                                <span class="detail-label">Veículo</span>
+                                <span class="detail-value">{{ checklist.veiculo.modelo }} {{ checklist.veiculo.marca }}</span>
+                            </li>
+                            <li>
+                                <span class="detail-label">Ano / Cor</span>
+                                <span class="detail-value">{{ checklist.veiculo.ano if checklist.veiculo.ano is not none else '-' }}/{{ checklist.veiculo.cor if checklist.veiculo.cor else '-' }}</span>
+                            </li>
+                            <li>
+                                <span class="detail-label">Cliente</span>
+                                <span class="detail-value">{{ checklist.veiculo.cliente.nome }}</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fotos -->
+            {% if checklist.fotos %}
+            <div class="card-custom">
+                <h6 class="fw-bold mb-3"><i class="bi bi-images me-1"></i> Registro fotográfico ({{ checklist.fotos|length }})</h6>
+                <div class="photo-grid">
+                    {% for f in checklist.fotos %}
+                    <div class="photo-item">
+                        <img src="/uploads/{{ f.caminho_arquivo }}" alt="Foto do checklist"
+                             data-bs-toggle="modal" data-bs-target="#fotoModal"
+                             data-foto-full="/uploads/{{ f.caminho_arquivo }}">
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <div class="card-custom text-center py-4">
+                <i class="bi bi-images text-muted display-4"></i>
+                <p class="text-muted mt-2 mb-0">Nenhuma foto registrada neste checklist.</p>
+            </div>
+            {% endif %}
+
+            <!-- Modal para foto ampliada -->
+            <div class="modal fade" id="fotoModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-content" style="background:rgba(0,0,0,0.85);">
+                        <div class="modal-body p-0 position-relative">
+                            <img id="fotoAmpliada" src="" alt="Foto ampliada" class="w-100 rounded">
+                            <button type="button" class="btn btn-sm position-absolute top-0 end-0 m-2"
+                                    style="background:rgba(0,0,0,0.6);color:#fff;" data-bs-dismiss="modal">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="text-center text-muted small py-3 no-print">
+            JAPACAR · Sistema de gestão para oficina mecânica
+        </footer>
+    </div>
+</div>
+
+{{ nav.bottomNav() }}
+{% include 'fragments/scripts.html' %}
+<script>
+    document.addEventListener('click', function (e) {
+        const img = e.target.closest('img[data-foto-full]');
+        if (img) {
+            document.getElementById('fotoAmpliada').src = img.getAttribute('data-foto-full');
+        }
+    });
+</script>
+</body>
+</html>

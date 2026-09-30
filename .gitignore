@@ -1,0 +1,24 @@
+# JAPACAR
+*.db
+*.db-journal
+*.db-wal
+uploads/
+data/
+backups/
+scripts/.backup-credentials
+# Chave publica de destino do backup. Publica, mas nao versionar junto.
+scripts/.backup-recipient
+# Chave PRIVADA de decrypt do backup. Se isto for commitado, o backup
+# criptografado deixa de proteger o que quer que seja.
+*backup-key*.txt
+*.age.key
+chaves/
+# Contem a SECRET_KEY de producao. Nunca versionar.
+.env
+.DS_Store
+.idea/
+__pycache__/
+*.log
+.venv/
+.pytest_cache/
+smoke_cookies.txt

@@ -1,0 +1,15 @@
+{% import 'fragments/nav.html' as nav with context %}
+<header class="app-header">
+    <button type="button" class="hamburger-btn" id="drawerOpen" aria-label="Abrir menu">
+        <i class="bi bi-list"></i>
+    </button>
+    {{ nav.brand() }}
+    <div class="user-info">
+        <span>{{ current_user.login }}</span>
+        <a href="/logout" class="logout-link" title="Sair">
+            <i class="bi bi-box-arrow-right"></i>
+        </a>
+    </div>
+    {{ nav.drawerBackdrop() }}
+    {{ nav.drawer() }}
+</header>

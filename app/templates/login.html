@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>JAPACAR - Login</title>
+    <link rel="stylesheet" href="/static/vendor/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="login-page">
+<div class="login-wrapper">
+    <div class="login-card">
+        <div class="login-logo">JP</div>
+        <h1>JAPACAR</h1>
+        <p class="subtitle">Sistema de gestão da oficina</p>
+
+        {% if error %}
+        <div class="alert alert-danger" role="alert">Credenciais inválidas. Tente novamente.</div>
+        {% endif %}
+        {% if excedeu %}
+        <div class="alert alert-danger" role="alert">{{ mensagem_excedeu }}</div>
+        {% endif %}
+        {% if logout %}
+        <div class="alert alert-success" role="alert">Você saiu do sistema.</div>
+        {% endif %}
+
+        <form action="/login" method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <div class="mb-3">
+                <label for="username" class="form-label-custom">Usuário</label>
+                <input type="text" class="form-control" id="username" name="username" autofocus required
+                       placeholder="Digite seu usuário" autocomplete="username">
+            </div>
+            <div class="mb-4">
+                <label for="password" class="form-label-custom">Senha</label>
+                <div class="input-group position-relative">
+                    <input type="password" class="form-control" id="password" name="password" required
+                           placeholder="Digite sua senha" autocomplete="current-password">
+                    <button type="button" class="password-toggle" id="passwordToggle"
+                            data-password-toggle="password" aria-label="Mostrar senha">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
+            </div>
+            <button type="submit" class="login-btn">
+                <i class="bi bi-box-arrow-in-right me-1"></i> Entrar
+            </button>
+        </form>
+    </div>
+</div>
+<script>
+    document.getElementById('passwordToggle').addEventListener('click', function () {
+        const input = document.getElementById('password');
+        const icon = this.querySelector('i');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.className = 'bi bi-eye-slash';
+        } else {
+            input.type = 'password';
+            icon.className = 'bi bi-eye';
+        }
+    });
+</script>
+</body>
+</html>

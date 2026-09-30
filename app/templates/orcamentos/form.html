@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+{% include 'fragments/head.html' %}
+<body class="{{ deviceClass }}">
+{% import 'fragments/nav.html' as nav with context %}
+{{ nav.sidebar() }}
+
+<div class="d-flex flex-column flex-lg-row w-100">
+    <div class="flex-grow-1 d-flex flex-column" style="min-height:100vh;">
+        {% include 'fragments/header.html' %}
+
+        <main class="app-main flex-grow-1">
+            <div class="d-flex align-items-center mb-2">
+                <a href="/atendimentos" class="btn btn-sm btn-outline-secondary me-2 no-print">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <h1 class="page-title mb-0">{% if orcamento.id %}Editar Orçamento{% else %}Novo Orçamento{% endif %}</h1>
+            </div>
+            <p class="page-subtitle">Registre os itens e serviços do orçamento</p>
+
+            {% include 'fragments/alerts.html' %}
+
+            {% import 'fragments/form-actions.html' as ui %}
+            <form action="/orcamentos/salvar" method="post" class="form-card">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                {% if orcamento.id %}
+                <input type="hidden" name="id" value="{{ orcamento.id }}"/>
+                <input type="hidden" name="status" value="{{ orcamento.status }}"/>
+                {% endif %}
+
+                <div class="mb-3">
+                    <label class="form-label-custom">Atendimento / Serviço *</label>
+                    <select name="atendimentoId" class="form-select" required>
+                        <option value="">Selecione o atendimento...</option>
+                        {% for at in atendimentos %}
+                        <option value="{{ at.id }}"
+                                {% if orcamento.atendimento and orcamento.atendimento.id == at.id %}selected{% endif %}>{{ at.veiculo.placa }} - {{ at.veiculo.modelo }} {{ at.veiculo.marca }} ({{ at.veiculo.cliente.nome }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-1">
+                    <label class="form-label-custom">Itens / serviços *</label>
+                </div>
+                <div id="itens-lista" class="mb-3">
+                    {% for item in orcamento.itens %}
+                    <div class="item-row d-flex gap-2 mb-2 align-items-center">
+                        <input type="text" name="itemDescricao" class="form-control" placeholder="Descrição do item/serviço"
+                               value="{{ item.descricao }}" required>
+                        <input type="number" name="itemQuantidade" class="form-control qtd" style="max-width:90px;"
+                               min="1" value="{{ item.quantidade if item.quantidade else 1 }}" placeholder="Qtd">
+                        <input type="text" name="itemValorUnitario" class="form-control valor" style="max-width:140px;"
+                               value="{{ item.valor_unitario|brl if item.valor_unitario else '' }}"
+                               placeholder="R$ unitário">
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-remove-item no-print">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                    {% endfor %}
+                    <div class="item-row d-flex gap-2 mb-2 align-items-center">
+                        <input type="text" name="itemDescricao" class="form-control" placeholder="Descrição do item/serviço">
+                        <input type="number" name="itemQuantidade" class="form-control qtd" style="max-width:90px;"
+                               min="1" value="1" placeholder="Qtd">
+                        <input type="text" name="itemValorUnitario" class="form-control valor" style="max-width:140px;"
+                               placeholder="R$ unitário">
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-remove-item no-print">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                <button type="button" id="btn-add-item" class="btn btn-sm btn-outline-secondary mb-3 no-print">
+                    <i class="bi bi-plus-lg me-1"></i> Adicionar item
+                </button>
+
+                <div class="row">
+                    <div class="col-12 col-md-6 mb-3">
+                        <label class="form-label-custom">Valor mão de obra (R$)</label>
+                        <input type="text" name="valorMaoDeObraText" class="form-control valor"
+                               value="{{ orcamento.valor_mao_de_obra|brl if orcamento.valor_mao_de_obra else '' }}"
+                               placeholder="0,00">
+                    </div>
+                    <div class="col-12 col-md-6 mb-3">
+                        <label class="form-label-custom">Status</label>
+                        {% if orcamento.id %}
+                        <select name="status" class="form-select">
+                            {% for chave, texto in STATUS_ORCAMENTO %}
+                            <option value="{{ chave }}" {% if orcamento.status == chave %}selected{% endif %}>{{ texto }}</option>
+                            {% endfor %}
+                        </select>
+                        {% else %}
+                        <input type="hidden" name="status" value="PENDENTE">
+                        <div class="form-text">Novo orçamento inicia como <strong>Pendente</strong>.</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label-custom">Observações</label>
+                    <textarea name="observacoes" class="form-control" rows="3"
+                              placeholder="Observações do orçamento">{{ orcamento.observacoes or '' }}</textarea>
+                </div>
+
+                {{ ui.form_actions(action_label='Salvar orçamento', cancelar_url='/atendimentos') }}
+            </form>
+        </main>
+
+        <footer class="text-center text-muted small py-3 no-print">
+            JAPACAR · Sistema de gestão para oficina mecânica
+        </footer>
+    </div>
+</div>
+
+{{ nav.bottomNav() }}
+{% include 'fragments/scripts.html' %}
+<script>
+    document.getElementById('btn-add-item').addEventListener('click', function () {
+        const lista = document.getElementById('itens-lista');
+        const row = document.createElement('div');
+        row.className = 'item-row d-flex gap-2 mb-2 align-items-center';
+        row.innerHTML =
+            '<input type="text" name="itemDescricao" class="form-control" placeholder="Descrição do item/serviço">' +
+            '<input type="number" name="itemQuantidade" class="form-control qtd" style="max-width:90px;" min="1" value="1" placeholder="Qtd">' +
+            '<input type="text" name="itemValorUnitario" class="form-control valor" style="max-width:140px;" placeholder="R$ unitário">' +
+            '<button type="button" class="btn btn-sm btn-outline-danger btn-remove-item no-print"><i class="bi bi-trash"></i></button>';
+        lista.appendChild(row);
+    });
+
+    document.getElementById('itens-lista').addEventListener('click', function (e) {
+        if (e.target.closest('.btn-remove-item')) {
+            const row = e.target.closest('.item-row');
+            const rows = document.querySelectorAll('#itens-lista .item-row');
+            if (rows.length > 1) {
+                row.remove();
+            } else {
+                row.querySelectorAll('input').forEach(function (input) {
+                    input.value = '';
+                });
+            }
+        }
+    });
+</script>
+</body>
+</html>

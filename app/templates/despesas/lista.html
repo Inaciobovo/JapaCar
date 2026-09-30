@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+{% include 'fragments/head.html' %}
+<body class="{{ deviceClass }}">
+{% import 'fragments/nav.html' as nav with context %}
+{{ nav.sidebar() }}
+
+<div class="d-flex flex-column flex-lg-row w-100">
+    <div class="flex-grow-1 d-flex flex-column" style="min-height:100vh;">
+        {% include 'fragments/header.html' %}
+
+        <main class="app-main flex-grow-1">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <h1 class="page-title">Despesas</h1>
+                <a href="/despesas/nova" class="btn btn-sm btn-japacar">
+                    <i class="bi bi-plus-lg me-1"></i> Nova
+                </a>
+            </div>
+            <p class="page-subtitle">Entradas financeiras: pagamentos, compras e custos</p>
+
+            {% include 'fragments/alerts.html' %}
+
+            <div class="filter-bar">
+                <form class="d-flex flex-wrap gap-2 w-100" method="get" action="/despesas">
+                    <div style="flex:1 1 130px;">
+                        <label class="form-label-custom">De</label>
+                        <input type="date" name="dataInicio" value="{{ dataInicio }}" class="form-control form-control-sm">
+                    </div>
+                    <div style="flex:1 1 130px;">
+                        <label class="form-label-custom">Até</label>
+                        <input type="date" name="dataFim" value="{{ dataFim }}" class="form-control form-control-sm">
+                    </div>
+                    <div style="flex:1 1 160px;">
+                        <label class="form-label-custom">Categoria</label>
+                        <select name="categoria" class="form-select form-select-sm">
+                            <option value="">Todas</option>
+                            {% for chave, texto in categorias %}
+                            <option value="{{ chave }}" {% if categoria == chave %}selected{% endif %}>{{ texto }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-japacar-dark">
+                        <i class="bi bi-funnel me-1"></i> Filtrar
+                    </button>
+                </form>
+            </div>
+
+            {% if not isMobile and despesas %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Descrição</th>
+                        <th>Categoria</th>
+                        <th class="text-end">Valor</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for d in despesas %}
+                    <tr>
+                        <td>{{ d.data|dt('%d/%m/%Y') }}</td>
+                        <td>
+                            <div class="fw-semibold">{{ d.descricao }}</div>
+                        </td>
+                        <td>{{ d.categoria_descricao }}</td>
+                        <td class="text-end fw-semibold" style="color:#dc3545;">R$ {{ d.valor|brl }}</td>
+                        <td class="text-end text-nowrap">
+                            <a href="/despesas/{{ d.id }}/editar"
+                               class="btn btn-sm btn-outline-secondary" title="Editar">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form action="/despesas/{{ d.id }}/remover" method="post"
+                                  class="d-inline" data-confirm="Remover esta despesa?">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Remover">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            {% if isMobile and despesas %}
+            <div class="list-cards">
+                {% for d in despesas %}
+                <div class="list-card">
+                    <div class="lc-top">
+                        <div class="lc-title">
+                            <span>{{ d.descricao }}</span>
+                            <small>{{ d.data|dt('%d/%m/%Y') }}</small>
+                        </div>
+                        <span class="fs-6 fw-bold" style="color:#dc3545;">R$ {{ d.valor|brl }}</span>
+                    </div>
+                    <div class="lc-meta">
+                        <span>Categoria</span>
+                        <strong>{{ d.categoria_descricao }}</strong>
+                    </div>
+                    <div class="lc-actions">
+                        <a href="/despesas/{{ d.id }}/editar" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-pencil me-1"></i> Editar
+                        </a>
+                        <form action="/despesas/{{ d.id }}/remover" method="post"
+                              class="d-inline" data-confirm="Remover esta despesa?">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash me-1"></i> Remover
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if not despesas %}
+            <div class="card-custom text-center py-5">
+                <i class="bi bi-cash-stack display-4 text-muted"></i>
+                <p class="text-muted mt-3 mb-0">Nenhuma despesa encontrada.</p>
+                <a href="/despesas/nova" class="btn btn-sm mt-3 btn-japacar">Adicionar despesa</a>
+            </div>
+            {% endif %}
+        </main>
+
+        <footer class="text-center text-muted small py-3 no-print">
+            JAPACAR · Sistema de gestão para oficina mecânica
+        </footer>
+    </div>
+</div>
+
+{{ nav.bottomNav() }}
+{% include 'fragments/scripts.html' %}
+</body>
+</html>

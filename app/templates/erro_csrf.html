@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Requisição inválida — JAPACAR</title>
+    <link rel="stylesheet" href="/static/vendor/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="login-wrapper">
+    <div class="login-card text-center">
+        <div class="login-logo">JP</div>
+        <h1>Sessão expirada</h1>
+        <p class="subtitle">A requisição não pôde ser validada (falha de proteção CSRF). Isso normalmente acontece quando a página fica em branco por um tempo e a sessão expira.</p>
+        <p class="text-muted small mb-4">{{ descricao }}</p>
+        <a href="/" class="login-btn text-decoration-none d-block">Voltar ao sistema</a>
+    </div>
+</div>
+</body>
+</html>
