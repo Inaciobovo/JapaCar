@@ -24,7 +24,8 @@ recebimentos (inclusive **parcelamento**), despesas, relatório de orçamentos e
 10. [Segurança](#segurança)
 11. [Criptografia do backup](#criptografia-do-backup)
 12. [Implantação em produção (Docker + Caddy)](#implantação-em-produção-docker--caddy)
-13. [Backup e restauração](#backup-e-restauração)
+13. [Implantação gratuita no PythonAnywhere](#implantação-gratuita-no-pythonanywhere)
+14. [Backup e restauração](#backup-e-restauração)
 14. [Usuários](#usuários)
 15. [Changelog recente](#changelog-recente)
 16. [Licença](#licença)
@@ -139,6 +140,8 @@ JAPACAR/
 │   ├── backup.sh              # backup cifrado (envia por e-mail a cada 14 dias)
 │   ├── restore.sh             # decifra e restaura um backup
 │   └── send_backup.py         # envia o .tar.gz.age por e-mail (SMTP Gmail)
+├── deploy/
+│   └── pythonanywhere_wsgi.py # WSGI do PythonAnywhere (deploy gratuito)
 ├── tests/
 │   ├── conftest.py            # fixtures do pytest
 │   ├── seed_base.py           # dataset mínimo para testes
@@ -532,6 +535,96 @@ versionada junto com os backups, a criptografia deixa de proteger o que quer que
 
 ---
 
+## Implantação gratuita no PythonAnywhere
+
+Alternativa **sem cartão de crédito** para o Docker + Caddy: o PythonAnywhere hospeda o app Flask
+com **disco persistente** (SQLite e fotos continuam lá entre reinícios) e HTTPS no subdomínio
+`SEU_USUARIO.pythonanywhere.com`. Como o plano gratuito roda **um único worker**, o rate limit de
+login em memória funciona corretamente — o mesmo motivo pelo qual o Gunicorn usa 1 processo.
+
+Limites do plano gratuito (importantes):
+
+| Limite | Valor | Consequência |
+| --- | --- | --- |
+| CPU | **100 CPU-segundos por dia** | É o limite mais apertado. O login usa bcrypt (~0,2 s de CPU cada); evite scripts de teste em rajada. Se estourar, o app responde erro até o dia seguinte. |
+| Disco | 512 MB | Suficiente para banco + fotos + código; cuidado com muitos uploads grandes. |
+| Web app | 1 app, 1 worker | Sem processos paralelos. |
+| Expiração | ~1 mês de inatividade | **Entre no painel e clique em "Run until 3 months from today"** de tempos em tempos, senão o web app é desativado. |
+| Domínio | Só `SEU_USUARIO.pythonanywhere.com` | Sem domínio próprio no plano gratuito. |
+
+O repositório inclui `deploy/pythonanywhere_wsgi.py`, que já configura `FLASK_ENV=prod`,
+`TRUSTED_HOSTS`, `DATABASE_URL` e `UPLOAD_DIR`, e lê o `SECRET_KEY` de um `.env` privado.
+
+### 1. Conta e código
+
+Crie a conta gratuita e abra um **Bash console**:
+
+```bash
+# código no disco persistente
+git clone https://github.com/Inaciobovo/JapaCar.git ~/JapaCar
+cd ~/JapaCar
+
+# ambiente virtual Python 3.12 (disponível nas contas novas)
+mkvirtualenv --python=/usr/bin/python3.12 japacar
+pip install -r requirements.txt
+```
+
+Gere a chave e crie o `.env` (permissão restrita, conteúdo **não** vai para o git):
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(64))"
+umask 077
+printf 'SECRET_KEY=%s\n' 'COLE_A_CHAVE_GERADA_AQUI' > ~/JapaCar/.env
+```
+
+### 2. Web app
+
+No **Web Tab** → *Add a new web app* → **Manual configuration** → **Python 3.12**:
+
+1. **Virtualenv**: `/home/SEU_USUARIO/.virtualenvs/japacar`.
+2. **Static files** (desvia os estáticos do Flask, economizando CPU):
+
+   | URL | Directory |
+   | --- | --- |
+   | `/static/` | `/home/SEU_USUARIO/JapaCar/app/static/` |
+   | `/css/` | `/home/SEU_USUARIO/JapaCar/app/static/css/` |
+   | `/js/` | `/home/SEU_USUARIO/JapaCar/app/static/js/` |
+   | `/img/` | `/home/SEU_USUARIO/JapaCar/app/static/img/` |
+
+3. **WSGI configuration file** (link no topo do Web Tab): apague o exemplo e cole o conteúdo de
+   `deploy/pythonanywhere_wsgi.py`, trocando `USUARIO = "SEU_USUARIO"` pelo seu login.
+4. Clique em **Reload**.
+
+> Não mapeie `/uploads/`: essas fotos passam pelo Flask para exigir login. Mapear o diretório
+> `uploads/` como estático tornaria as fotos de lataria e interior **públicas**.
+
+### 3. Primeiro usuário
+
+No Bash console (com o virtualenv ativo e o `.env` já criado, o WSGI cuida do ambiente do site;
+para o comando abaixo exporte as variáveis):
+
+```bash
+cd ~/JapaCar && workon japacar
+set -a; . ./.env; set +a
+export FLASK_ENV=prod
+export TRUSTED_HOSTS=SEU_USUARIO.pythonanywhere.com
+export DATABASE_URL="sqlite:///$HOME/JapaCar/data/japacar.db"
+flask --app app:create_app usuario-criar --login admin --perfil ADMIN
+```
+
+Acesse `https://SEU_USUARIO.pythonanywhere.com` e faça login.
+
+### 4. Atualizar a versão
+
+```bash
+cd ~/JapaCar && git pull --ff-only && workon japacar && pip install -r requirements.txt
+```
+
+Depois clique em **Reload** no Web Tab. O `SECRET_KEY` no `.env` **não** deve mudar: trocá-lo
+invalida as sessões ativas.
+
+---
+
 ## Backup e restauração
 
 ### Backup automático
@@ -599,6 +692,9 @@ flask --app run.py usuario-senha --login admin
 
 ## Changelog recente
 
+- **v1.5** — **Deploy gratuito no PythonAnywhere**: artefato `deploy/pythonanywhere_wsgi.py`
+  (configura produção, lê `SECRET_KEY` de `.env` privado e usa disco persistente) e passo a passo
+  no README. Sem alteração na lógica do app; alternativa sem cartão ao Docker + Caddy.
 - **v1.4** — **Hardening de deploy**: `TRUSTED_HOSTS` obrigatório em produção (anti Host
   header injection), Gunicorn em um único processo `gthread` para o rate limit de login valer de
   fato, valores de pagamento limitados a `(0, total]` e parcelamento com teto de 12x no servidor,
