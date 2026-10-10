@@ -72,7 +72,10 @@ def salvar(id):
         return redirect(url_for("atendimentos.listar"))
     veiculo_id = request.form.get("veiculoId")
     if veiculo_id:
-        veiculo = veiculo_service.buscar_por_id(int(veiculo_id))
+        try:
+            veiculo = veiculo_service.buscar_por_id(int(veiculo_id))
+        except (TypeError, ValueError):
+            veiculo = None
         if veiculo is not None:
             atendimento.veiculo = veiculo
     atendimento.mecanico_responsavel = request.form.get("mecanicoResponsavel") or None

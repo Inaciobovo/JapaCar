@@ -274,6 +274,7 @@ def test_prod_nao_cria_usuarios_padrao(tmp_path):
     app = create_app(
         "prod",
         SECRET_KEY="chave-de-teste-com-tamanho-suficiente-para-producao-1234",
+        TRUSTED_HOSTS=["localhost"],
         SQLALCHEMY_DATABASE_URI=f"sqlite:///{tmp_path / 'prod.db'}",
     )
     with app.app_context():
@@ -290,9 +291,34 @@ def test_seed_ligado_em_producao_recusa_o_boot(tmp_path):
         create_app(
             "prod",
             SECRET_KEY="chave-de-teste-com-tamanho-suficiente-para-producao-1234",
+            TRUSTED_HOSTS=["localhost"],
             SQLALCHEMY_DATABASE_URI=f"sqlite:///{tmp_path / 'prod.db'}",
             SEED_ON_STARTUP=True,
         )
+
+
+def test_prod_recusa_boot_sem_host_confiavel(tmp_path):
+    """Sem TRUSTED_HOSTS o Flask aceitaria qualquer Host header."""
+    from app import create_app
+
+    with pytest.raises(RuntimeError):
+        create_app(
+            "prod",
+            SECRET_KEY="chave-de-teste-com-tamanho-suficiente-para-producao-1234",
+            SQLALCHEMY_DATABASE_URI=f"sqlite:///{tmp_path / 'prod.db'}",
+        )
+
+
+def test_host_header_estranho_recusado(app_seg):
+    """Host fora da lista confiável não pode ser atendido."""
+    r = app_seg.test_client().get("/login", base_url="https://atacante.example/")
+    assert r.status_code == 400
+
+
+def test_host_local_aceito_para_healthcheck(app_seg):
+    """O healthcheck interno (curl em localhost) não pode levar 400."""
+    r = app_seg.test_client().get("/login", base_url="http://localhost/")
+    assert r.status_code == 200
 
 
 def test_usuario_inativo_nao_entra(app_seg, client_seg):
@@ -768,6 +794,108 @@ def test_salvar_com_id_inexistente_nao_cria_registro_orfão(como_admin):
         assert Cliente.query.filter_by(nome="Despesa fantasma").count() == 0
 
 
+def test_pagamento_acima_do_total_nao_infla_o_recebido(como_admin):
+    """Informar um valor maior que o devido não pode inchar o caixa."""
+    with como_admin.application.app_context():
+        orc = Orcamento.query.first()
+        orc_id, atendimento_id = orc.id, orc.atendimento_id
+        total = float(orc.valor_total)
+
+    post(
+        como_admin,
+        f"/atendimentos/{atendimento_id}/pagamentos",
+        {
+            "pagamentoOrcamentoId": [str(orc_id)],
+            "pagamentoSituacao": ["PAGO"],
+            "pagamentoForma": ["DINHEIRO"],
+            "pagamentoValor": ["999999,00"],
+            "pagamentoData": ["2026-09-21"],
+        },
+    )
+
+    with como_admin.application.app_context():
+        orc = db.session.get(Orcamento, orc_id)
+        assert orc.status_pagamento == "PAGO"
+        assert float(orc.valor_pago) == total, f"valor_pago inflado: {orc.valor_pago}"
+
+
+def test_pagamento_negativo_nao_gera_caixa_negativo(como_admin):
+    with como_admin.application.app_context():
+        orc = Orcamento.query.first()
+        orc_id, atendimento_id = orc.id, orc.atendimento_id
+
+    post(
+        como_admin,
+        f"/atendimentos/{atendimento_id}/pagamentos",
+        {
+            "pagamentoOrcamentoId": [str(orc_id)],
+            "pagamentoSituacao": ["PAGO"],
+            "pagamentoForma": ["PIX"],
+            "pagamentoValor": ["-500,00"],
+            "pagamentoData": ["2026-09-21"],
+        },
+    )
+
+    with como_admin.application.app_context():
+        orc = db.session.get(Orcamento, orc_id)
+        assert float(orc.valor_pago) >= 0
+
+
+def test_parcelamento_acima_do_maximo_recusado(como_admin):
+    """O limite de 12x precisa valer no servidor, não só no input do HTML."""
+    from app.models import Parcela
+
+    with como_admin.application.app_context():
+        orc_id = Orcamento.query.first().id
+
+    post(como_admin, f"/orcamentos/{orc_id}/parcelar", {"quantidadeParcelas": "999"})
+
+    with como_admin.application.app_context():
+        assert Parcela.query.filter_by(orcamento_id=orc_id).count() == 0
+
+
+def test_despesa_sem_categoria_recusada_sem_500(como_admin):
+    """Categoria é obrigatória no banco; vazia deve ser recusada, não estourar."""
+    from app.models import Despesa
+
+    r = post(
+        como_admin,
+        "/despesas/salvar",
+        {
+            "descricao": "Sem categoria",
+            "categoria": "",
+            "valorText": "10,00",
+            "data": "2026-09-29",
+        },
+    )
+    assert r.status_code == 302
+    with como_admin.application.app_context():
+        assert Despesa.query.filter_by(descricao="Sem categoria").count() == 0
+
+
+def test_placa_duplicada_recusada(como_admin):
+    """Placa única também no cadastro manual, não só por índice do banco."""
+    with como_admin.application.app_context():
+        existente = Veiculo.query.first()
+        placa, cliente_id = existente.placa, existente.cliente_id
+
+    r = post(
+        como_admin,
+        "/veiculos/salvar",
+        {
+            "placa": placa,
+            "marca": "Fiat",
+            "modelo": "Uno",
+            "ano": "2016",
+            "cor": "Preto",
+            "cliente.id": str(cliente_id),
+        },
+    )
+    assert r.headers["Location"].endswith("/veiculos/novo")
+    with como_admin.application.app_context():
+        assert Veiculo.query.filter_by(placa=placa).count() == 1
+
+
 # ===========================================================================
 # GRUPO E — Headers de segurança e XSS
 # ===========================================================================
@@ -793,6 +921,13 @@ def test_csp_bloqueia_framing_e_scripts_externos(como_admin):
     assert "frame-ancestors 'none'" in csp
     assert "object-src 'none'" in csp
     assert "base-uri 'none'" in csp
+
+
+def test_csp_nao_libera_cdn_externo(como_admin):
+    """Bootstrap é servido da própria origem; nenhum CDN precisa estar na CSP."""
+    csp = como_admin.get("/clientes").headers.get("Content-Security-Policy", "")
+    assert "cdn.jsdelivr.net" not in csp
+    assert "default-src 'self'" in csp
 
 
 def test_clickjacking_bloqueado_na_tela_de_pagamento(como_admin):

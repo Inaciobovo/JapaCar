@@ -77,12 +77,14 @@ def salvar():
         despesa.id = None
     despesa.descricao = form.get("descricao", "")
     # Categoria vai para o agrupamento do dashboard e do relatório; um valor
-    # fora da lista some do gráfico sem aviso.
+    # fora da lista some do gráfico sem aviso. A coluna é obrigatória no banco,
+    # então categoria vazia precisa ser recusada aqui, e não virar um 500 no
+    # commit.
     categoria = (form.get("categoria") or "").strip()
-    if categoria and categoria not in CATEGORIA_DESCRICOES:
-        flash("Categoria de despesa inválida.", "error")
+    if categoria not in CATEGORIA_DESCRICOES:
+        flash("Selecione uma categoria de despesa válida.", "error")
         return redirect(url_for("despesas.nova"))
-    despesa.categoria = categoria or None
+    despesa.categoria = categoria
     despesa.observacoes = form.get("observacoes") or None
     despesa.data = _parse_data_form(form.get("data"))
     despesa.valor = parse_valor(form.get("valorText"))

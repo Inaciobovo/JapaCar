@@ -75,9 +75,11 @@ def salvar():
     except ValueError:
         veiculo.ano = None
     veiculo.cor = form.get("cor", "")
-    veiculo.cliente = Cliente(
-        id=int(form.get("cliente.id")) if form.get("cliente.id") else None
-    )
+    try:
+        cliente_id = int(form.get("cliente.id")) if form.get("cliente.id") else None
+    except ValueError:
+        cliente_id = None
+    veiculo.cliente = Cliente(id=cliente_id)
 
     if (
         not veiculo.placa.strip()

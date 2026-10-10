@@ -69,6 +69,12 @@ def validar_config(config, ambiente):
             "SEED_ON_STARTUP nao pode ser verdadeiro em producao: ele cria "
             "admin/admin123. Crie o primeiro usuario com `flask usuario-criar`."
         )
+    if not config.get("TRUSTED_HOSTS"):
+        raise ErroDeConfiguracao(
+            "TRUSTED_HOSTS/APP_DOMAIN nao definido em producao. Sem uma lista "
+            "de hosts confiaveis, o Flask aceita qualquer Host header, o que "
+            "permite envenenar links e cache. Defina APP_DOMAIN no .env."
+        )
     return config
 
 
@@ -119,11 +125,14 @@ class Config:
     )
 
     # --- Cabecalhos de seguranca ----------------------------------------
+    # O Bootstrap e os icones sao servidos da propria origem (app/static), entao
+    # a CSP nao precisa liberar nenhum CDN externo. Cada origem extra aqui e uma
+    # superficie a mais para injecao de script.
     CSP = (
         "default-src 'self'; "
         "script-src 'self'; "
-        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
-        "font-src 'self' https://cdn.jsdelivr.net data:; "
+        "style-src 'self' 'unsafe-inline'; "
+        "font-src 'self' data:; "
         "img-src 'self' data:; "
         "connect-src 'self'; "
         "form-action 'self'; "
@@ -132,6 +141,29 @@ class Config:
         "object-src 'none'"
     )
     HSTS_MAX_AGE = 31536000
+
+    # --- Host header confiavel ------------------------------------------
+    # Sem esta lista o Flask aceita qualquer Host, o que permite envenenar
+    # url_for em e-mails/redirecionamentos e cache. Em producao e alimentada
+    # pelo `APP_DOMAIN` (ex.: japacar.duckdns.org); vazia em dev desativa a
+    # checagem para nao atrapalhar localhost.
+    #
+    # `localhost`/`127.0.0.1` entram apenas quando ha um dominio configurado:
+    # sao os hosts usados pelos healthchecks internos (curl local) e o app nao
+    # publica porta, entao so o Caddy (na rede interna) os alcanca. Sem isso o
+    # healthcheck do container tomaria 400 e o servico apareceria como unhealthy.
+    _hosts_dominio = [
+        host.strip()
+        for host in (
+            os.environ.get("TRUSTED_HOSTS")
+            or os.environ.get("APP_DOMAIN")
+            or ""
+        ).split(",")
+        if host.strip()
+    ]
+    TRUSTED_HOSTS = (
+        _hosts_dominio + ["localhost", "127.0.0.1"] if _hosts_dominio else []
+    )
 
     TZ = "America/Sao_Paulo"
 

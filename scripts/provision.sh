@@ -48,6 +48,18 @@ else
     log "Reaproveitando a SECRET_KEY existente em $BASE/.env"
 fi
 
+# O compose exige APP_DOMAIN (vira o Host confiavel do Flask). Persistir no
+# .env garante que um `docker compose up` futuro, sem a variavel no shell,
+# continue subindo com o mesmo host.
+umask 077
+if grep -q '^APP_DOMAIN=' "$BASE/.env"; then
+    sed -i "s|^APP_DOMAIN=.*|APP_DOMAIN=$APP_DOMAIN|" "$BASE/.env"
+else
+    printf 'APP_DOMAIN=%s\n' "$APP_DOMAIN" >> "$BASE/.env"
+fi
+chmod 600 "$BASE/.env"
+umask 022
+
 log "Timezone America/Sao_Paulo"
 timedatectl set-timezone America/Sao_Paulo 2>/dev/null || true
 

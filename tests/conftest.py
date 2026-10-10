@@ -97,6 +97,7 @@ def app_seg(tmp_path):
     application = create_app(
         "prod",
         SECRET_KEY="chave-de-teste-com-tamanho-suficiente-para-producao-1234",
+        TRUSTED_HOSTS=["localhost"],
         SQLALCHEMY_DATABASE_URI=f"sqlite:///{db_path}",
         TESTING=True,
         WTF_CSRF_ENABLED=True,

@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 from app.extensions import db
 from app.models import Orcamento, Parcela, _dec
 
-from app.utils import parse_data, parse_valor
+from app.utils import parse_data, parse_valor, valor_valido
 
 BR_TZ = ZoneInfo("America/Sao_Paulo")
 
@@ -86,6 +86,13 @@ class OrcamentoService:
             orcamento = self.buscar_por_id(orc_id)
             if orcamento is None:
                 continue
+            # Orçamento parcelado se paga por parcela; aceitar um pagamento no
+            # nível do orçamento aqui sobrescreveria o resultado da
+            # sincronização das parcelas e permitiria contar o dinheiro duas
+            # vezes. O template já separa os dois fluxos; esta guarda garante o
+            # mesmo no servidor.
+            if orcamento.parcelas:
+                continue
             situacao = situacoes[i] if situacoes and i < len(situacoes) else None
             if situacao and situacao.upper() == "PAGO":
                 orcamento.status_pagamento = "PAGO"
@@ -93,8 +100,13 @@ class OrcamentoService:
                     formas[i] if formas and i < len(formas) and formas[i] else None
                 )
                 orcamento.forma_pagamento = forma if forma and forma in FORMAS_VALIDAS else None
+                total = _dec(orcamento.valor_total)
                 valor = parse_valor(valores[i]) if valores and i < len(valores) else None
-                orcamento.valor_pago = valor if valor is not None else orcamento.valor_total
+                # Valor fora de (0, total] corromperia o saldo e a receita do
+                # dashboard: cai para o total devido.
+                if not valor_valido(valor, minimo=Decimal("0.01"), maximo=total):
+                    valor = total
+                orcamento.valor_pago = valor
                 orcamento.data_pagamento = (
                     parse_data(datas[i]) if datas and i < len(datas) else date.today()
                 )
@@ -117,6 +129,8 @@ class OrcamentoService:
             return None, "Informe a quantidade de parcelas."
         if quantidade < 2:
             return None, "A quantidade de parcelas deve ser maior ou igual a 2."
+        if quantidade > MAX_PARCELAS:
+            return None, f"O número máximo de parcelas é {MAX_PARCELAS}."
         if orcamento.parcelas:
             return None, "Este orçamento já possui um plano de parcelas gerado."
 
@@ -166,10 +180,13 @@ class OrcamentoService:
                 parcela.forma_pagamento = (
                     forma if forma and forma in FORMAS_VALIDAS else None
                 )
+                devido = _dec(parcela.valor)
                 valor = parse_valor(valores[i]) if valores and i < len(valores) else None
-                parcela.valor_pago = (
-                    valor if valor is not None else _dec(parcela.valor)
-                )
+                # Mesma regra do pagamento à vista: valor fora de (0, devido]
+                # cai para o valor da parcela, para não inflar o recebido.
+                if not valor_valido(valor, minimo=Decimal("0.01"), maximo=devido):
+                    valor = devido
+                parcela.valor_pago = valor
                 parcela.data_pagamento = (
                     parse_data(datas[i]) if datas and i < len(datas) else date.today()
                 )
@@ -219,6 +236,10 @@ FORMAS_VALIDAS = {
     "BOLETO",
     "OUTROS",
 }
+
+# Teto do parcelamento. O template e o README falam de 2 a 12x; sem o limite no
+# servidor, um POST direto podia gerar milhares de parcelas de centavos.
+MAX_PARCELAS = 12
 
 
 orcamento_service = OrcamentoService()

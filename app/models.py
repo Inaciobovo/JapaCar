@@ -110,7 +110,7 @@ class Veiculo(db.Model):
     __tablename__ = "veiculo"
 
     id = db.Column(db.Integer, primary_key=True)
-    placa = db.Column(db.String(255), nullable=False)
+    placa = db.Column(db.String(255), nullable=False, unique=True)
     modelo = db.Column(db.String(255), nullable=False)
     marca = db.Column(db.String(255), nullable=False)
     ano = db.Column(db.Integer)

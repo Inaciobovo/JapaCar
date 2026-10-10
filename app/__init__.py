@@ -48,6 +48,7 @@ def create_app(config_name=None, **overrides):
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
     db.init_app(app)
+    _configurar_sqlite(app)
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
     csrf.init_app(app)
@@ -70,6 +71,39 @@ def create_app(config_name=None, **overrides):
             seed_users()
 
     return app
+
+
+_sqlite_pragmas_ok = False
+
+
+def _configurar_sqlite(app):
+    """Liga WAL e um timeout de escrita no SQLite.
+
+    Sem WAL, uma escrita segura o arquivo inteiro e o Gunicorn (mesmo com um
+    worker e threads) esbarra em "database is locked" quando duas requisicoes
+    gravam juntas. O `busy_timeout` faz a segunda esperar em vez de falhar. O
+    listener e global (por isso o flag): registrar a cada create_app nos testes
+    empilharia listeners identicos.
+    """
+    global _sqlite_pragmas_ok
+    uri = app.config.get("SQLALCHEMY_DATABASE_URI", "")
+    if not uri.startswith("sqlite") or _sqlite_pragmas_ok:
+        return
+
+    from sqlalchemy import event
+    from sqlalchemy.engine import Engine
+
+    @event.listens_for(Engine, "connect")
+    def _pragmas(dbapi_connection, _record):
+        if dbapi_connection.__class__.__module__.split(".")[0] != "sqlite3":
+            return
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA busy_timeout=5000")
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
+    _sqlite_pragmas_ok = True
 
 
 def _exigir_chave_de_ambiente(ambiente, overrides):

@@ -268,6 +268,7 @@ com dados legados. Os tipos `EpochMsDateTime` e `EpochMsDate` em `app/models.py`
 | --- | --- | --- |
 | `FLASK_ENV` | `dev` | `dev` ou `prod` |
 | `SECRET_KEY` | aleatória por processo (dev) | Chave de assinatura de sessão e CSRF. **Obrigatória em produção**: sem ela o app não sobe. |
+| `APP_DOMAIN` / `TRUSTED_HOSTS` | vazio (dev) | Host(s) público(s) aceitos no header `Host`. **Obrigatório em produção** (vem do `APP_DOMAIN`, ex.: `japacar.duckdns.org`); sem ele o app recusa subir para não aceitar Host forjado. |
 | `DATABASE_URL` | `sqlite:///<projeto>/japacar.db` (dev) / `sqlite:////app/data/japacar.db` (prod) | URI do banco |
 | `UPLOAD_DIR` | `./uploads` (dev) / `/app/data/uploads` (prod) | Pasta de fotos |
 | `TZ` | `America/Sao_Paulo` | Fuso horário |
@@ -352,7 +353,10 @@ O que está implementado e por quê:
 | Controle | Motivo |
 | --- | --- |
 | RBAC no servidor (`app/security.py`) | Menu escondido não é controle de acesso; a rota precisa recusar |
-| Rate limit de login (Flask-Limiter, IP + usuário) | Trava tentativa de adivinhação sem atrapalhar o operador legítimo |
+| Rate limit de login (Flask-Limiter, IP + usuário) | Trava tentativa de adivinhação sem atrapalhar o operador legítimo. Roda em **um único processo** (`gthread` com threads): com vários workers o contador em memória seria multiplicado e o limite viraria ficção |
+| `TRUSTED_HOSTS` (Host header) | Sem lista de hosts confiáveis, um `Host` forjado envenena links/redirecionamentos e cache; produção recusa subir sem `APP_DOMAIN` |
+| Valores de pagamento limitados a `(0, total]` | Impede que um valor digitado a mais (ou negativo) infle a receita e o saldo do dashboard |
+| Parcelamento limitado a 12x no servidor | O limite não pode depender só do `max` do input HTML |
 | CSRF em todo POST | Impede que um site externo acione uma escrita com a sessão do operador |
 | Cookie `HttpOnly` + `Secure` + `SameSite=Lax` | Script não lê o cookie; cookie não viaja em HTTP nem em navegação cruzada |
 | `session.clear()` antes do login | Anti session-fixing: cookie plantado não sobrevive ao login |
@@ -595,6 +599,11 @@ flask --app run.py usuario-senha --login admin
 
 ## Changelog recente
 
+- **v1.4** — **Hardening de deploy**: `TRUSTED_HOSTS` obrigatório em produção (anti Host
+  header injection), Gunicorn em um único processo `gthread` para o rate limit de login valer de
+  fato, valores de pagamento limitados a `(0, total]` e parcelamento com teto de 12x no servidor,
+  categoria de despesa obrigatória (fim do 500), placa única no banco, SQLite em WAL com
+  `busy_timeout`/foreign keys, CSP sem CDN externo e remoção de código de RBAC morto.
 - **v1.3** — **Backup criptografado com age**: o pacote é cifrado antes de sair do servidor, com a
   chave privada fora da VPS e apenas a pública no servidor. Envio em texto claro deixou de existir
   (o risco estava documentado desde a v1.2). Hardening: `SECRET_KEY` externa obrigatória em

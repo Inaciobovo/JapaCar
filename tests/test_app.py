@@ -190,13 +190,14 @@ def test_registrar_pagamento(client):
             orc = Orcamento.query.first()
         orc_id = orc.id
         atendimento_id = orc.atendimento_id
+        valor_total = orc.valor_total
     r = client.post(
         f"/atendimentos/{atendimento_id}/pagamentos",
         data={
             "pagamentoOrcamentoId": [str(orc_id)],
             "pagamentoSituacao": ["PAGO"],
             "pagamentoForma": ["DINHEIRO"],
-            "pagamentoValor": ["100,00"],
+            "pagamentoValor": ["80,00"],
             "pagamentoData": ["2026-09-21"],
         },
     )
@@ -205,7 +206,8 @@ def test_registrar_pagamento(client):
         orc = db.session.get(Orcamento, orc_id)
         assert orc.status_pagamento == "PAGO"
         assert orc.forma_pagamento == "DINHEIRO"
-        assert orc.valor_pago == 100.00
+        # Pagamento dentro do total é aceito como informado.
+        assert float(orc.valor_pago) == min(80.00, float(valor_total))
 
 
 def test_finalizar_atendimento(client):
