@@ -4,10 +4,12 @@
 # Uso (no Bash console do PythonAnywhere):
 #   bash ~/JapaCar/deploy/pythonanywhere_setup.sh
 #
-# Faz tudo o que da para automatizar pelo console: virtualenv, dependencias,
-# SECRET_KEY, diretorios persistentes, WSGI ja com o seu login e o usuario
-# admin. O unico passo manual e colar a configuracao no Web Tab (o script
-# imprime exatamente o que colar).
+# Faz TUDO pelo console: virtualenv, dependencias, SECRET_KEY, diretorios
+# persistentes, usuario admin e, se o token da API estiver disponivel (a
+# variavel $API_TOKEN ja existe no console do PythonAnywhere), configura o
+# web app inteiro via API: cria o web app, aponta o virtualenv, registra os
+# arquivos estaticos, instala o WSGI e recarrega. Sem token, ele apenas
+# imprime o que colar no Web Tab.
 set -euo pipefail
 
 USUARIO="${USER:-$(whoami)}"
@@ -59,11 +61,10 @@ chmod 600 "$ENV_FILE" 2>/dev/null || true
 # 5. Diretorios persistentes (SQLite + fotos)
 mkdir -p "$PROJETO/data" "$PROJETO/uploads"
 
-# 6. WSGI ja com o login preenchido, pronto para colar no Web Tab
+# 6. WSGI ja com o login preenchido
 WSGI_DEST="$PROJETO/deploy/wsgi_config_pa.py"
 sed "s/USUARIO = \"SEU_USUARIO\"/USUARIO = \"$USUARIO\"/" \
   "$PROJETO/deploy/pythonanywhere_wsgi.py" > "$WSGI_DEST"
-echo "==> WSGI pronto para colar: $WSGI_DEST"
 
 # 7. Ambiente de producao para os comandos de CLI abaixo
 set -a
@@ -90,22 +91,101 @@ else
   echo "############################################################"
 fi
 
-cat <<EOF
+# ---------------------------------------------------------------------------
+# 9. Configuracao do web app via API (dispensa cliques no Web Tab).
+# ---------------------------------------------------------------------------
+api() {
+  # api METHOD PATH [curl args...] -> imprime corpo e, na ultima linha, o HTTP
+  local method="$1" path="$2"; shift 2
+  curl -sS -w '\n%{http_code}' -X "$method" \
+    -H "Authorization: Token $API_TOKEN" "$API_BASE$path" "$@" || true
+}
 
-==> Pronto. Faltam so os cliques no Web Tab (Add a new web app -> Manual
-    configuration -> Python 3.12):
+detectar_api() {
+  local base code
+  for base in "https://www.pythonanywhere.com" "https://eu.pythonanywhere.com"; do
+    code=$(curl -sS -o /dev/null -w '%{http_code}' \
+      -H "Authorization: Token $API_TOKEN" \
+      "$base/api/v0/user/$USUARIO/cpu/" 2>/dev/null || true)
+    if [ "$code" = "200" ]; then API_BASE="$base"; return 0; fi
+  done
+  return 1
+}
+
+configurar_webapp() {
+  local py_tag resp code body pair url dir
+  py_tag="python$(python -c 'import sys; print(f"{sys.version_info.major}{sys.version_info.minor}")')"
+
+  echo "==> Configurando o web app via API ($API_BASE)..."
+
+  # (a) cria o web app (manual config) se ainda nao existir
+  resp="$(api POST "/api/v0/user/$USUARIO/webapps/" \
+    --data-urlencode "domain_name=$DOMINIO" \
+    --data-urlencode "python_version=$py_tag")"
+  code="$(printf '%s\n' "$resp" | tail -n1)"; body="$(printf '%s\n' "$resp" | sed '$d')"
+  case "$code" in
+    200|201) echo "    [ok] web app criado ($py_tag)." ;;
+    400)     echo "    [ok] web app ja existia." ;;
+    *)       echo "    [!] criar web app -> HTTP $code"; printf '%s\n' "$body" ;;
+  esac
+
+  # (b) virtualenv, diretorio de codigo e HTTPS obrigatorio
+  resp="$(api PATCH "/api/v0/user/$USUARIO/webapps/$DOMINIO/" \
+    --data-urlencode "virtualenv_path=$VENV" \
+    --data-urlencode "source_directory=$PROJETO" \
+    --data-urlencode "force_https=true")"
+  code="$(printf '%s\n' "$resp" | tail -n1)"
+  echo "    [ok] virtualenv/source/https -> HTTP $code"
+
+  # (c) mapeamentos de arquivos estaticos
+  for pair in "/static/=$PROJETO/app/static/" "/css/=$PROJETO/app/static/css/" \
+              "/js/=$PROJETO/app/static/js/" "/img/=$PROJETO/app/static/img/"; do
+    url="${pair%%=*}"; dir="${pair#*=}"
+    resp="$(api POST "/api/v0/user/$USUARIO/webapps/$DOMINIO/static_files/" \
+      --data-urlencode "url=$url" --data-urlencode "path=$dir")"
+    code="$(printf '%s\n' "$resp" | tail -n1)"
+    echo "    [static] $url -> HTTP $code"
+  done
+
+  # (d) instala o arquivo WSGI (o PythonAnywhere le este arquivo)
+  resp="$(api POST "/api/v0/user/$USUARIO/files/path/var/www/${USUARIO}_pythonanywhere_com_wsgi.py" \
+    -F "content=@$WSGI_DEST;type=text/x-python")"
+  code="$(printf '%s\n' "$resp" | tail -n1)"
+  echo "    [wsgi] upload -> HTTP $code"
+
+  # (e) recarrega o site
+  resp="$(api POST "/api/v0/user/$USUARIO/webapps/$DOMINIO/reload/")"
+  code="$(printf '%s\n' "$resp" | tail -n1)"
+  echo "    [reload] -> HTTP $code"
+}
+
+if [ -n "${API_TOKEN:-}" ] && command -v curl >/dev/null 2>&1; then
+  if detectar_api; then
+    configurar_webapp
+    echo
+    echo "==> Pronto! Acesse: https://$DOMINIO  (login: admin)"
+  else
+    echo "==> Nao consegui falar com a API (token/server?). Configure pelo Web Tab:"
+    manual=1
+  fi
+else
+  echo "==> \$API_TOKEN indisponivel. Configure pelo Web Tab:"
+  manual=1
+fi
+
+if [ "${manual:-0}" = "1" ]; then
+  cat <<EOF
+
+    Web Tab -> Add a new web app -> Manual configuration:
 
     1) Virtualenv: $VENV
-
     2) Static files (URL -> Directory):
          /static/  ->  $PROJETO/app/static/
          /css/     ->  $PROJETO/app/static/css/
          /js/      ->  $PROJETO/app/static/js/
          /img/     ->  $PROJETO/app/static/img/
        (NAO mapeie /uploads/)
-
-    3) WSGI configuration file: abra o link, apague o exemplo e cole o
-       conteudo de: $WSGI_DEST
-
-    4) Clique em Reload e acesse: https://$DOMINIO
+    3) WSGI file: cole o conteudo de $WSGI_DEST
+    4) Reload e acesse https://$DOMINIO
 EOF
+fi
