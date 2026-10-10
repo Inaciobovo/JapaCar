@@ -141,7 +141,8 @@ JAPACAR/
 │   ├── restore.sh             # decifra e restaura um backup
 │   └── send_backup.py         # envia o .tar.gz.age por e-mail (SMTP Gmail)
 ├── deploy/
-│   └── pythonanywhere_wsgi.py # WSGI do PythonAnywhere (deploy gratuito)
+│   ├── pythonanywhere_wsgi.py    # WSGI do PythonAnywhere (deploy gratuito)
+│   └── pythonanywhere_setup.sh   # setup automatico (console + config via API)
 ├── tests/
 │   ├── conftest.py            # fixtures do pytest
 │   ├── seed_base.py           # dataset mínimo para testes
@@ -552,34 +553,33 @@ Limites do plano gratuito (importantes):
 | Expiração | ~1 mês de inatividade | **Entre no painel e clique em "Run until 3 months from today"** de tempos em tempos, senão o web app é desativado. |
 | Domínio | Só `SEU_USUARIO.pythonanywhere.com` | Sem domínio próprio no plano gratuito. |
 
-O repositório inclui `deploy/pythonanywhere_wsgi.py`, que já configura `FLASK_ENV=prod`,
-`TRUSTED_HOSTS`, `DATABASE_URL` e `UPLOAD_DIR`, e lê o `SECRET_KEY` de um `.env` privado.
+O repositório inclui `deploy/pythonanywhere_setup.sh`, que faz **todo o setup pelo console** — e,
+como o console do PythonAnywhere já expõe a variável `$API_TOKEN`, ele também configura o web app
+pela API (sem cliques no Web Tab). O `deploy/pythonanywhere_wsgi.py` é o arquivo WSGI instalado por
+ele, que configura `FLASK_ENV=prod`, `TRUSTED_HOSTS`, `DATABASE_URL` e `UPLOAD_DIR`, e lê o
+`SECRET_KEY` de um `.env` privado.
 
 ### 1. Conta e código
 
-Crie a conta gratuita e abra um **Bash console**:
+Crie a conta gratuita, abra um **Bash console** e rode:
 
 ```bash
-# código no disco persistente
-git clone https://github.com/Inaciobovo/JapaCar.git ~/JapaCar
-cd ~/JapaCar
-
-# ambiente virtual Python 3.12 (disponível nas contas novas)
-mkvirtualenv --python=/usr/bin/python3.12 japacar
-pip install -r requirements.txt
+[ -d ~/JapaCar ] && (cd ~/JapaCar && git pull) || \
+  git clone https://github.com/Inaciobovo/JapaCar.git ~/JapaCar
+bash ~/JapaCar/deploy/pythonanywhere_setup.sh
 ```
 
-Gere a chave e crie o `.env` (permissão restrita, conteúdo **não** vai para o git):
-
-```bash
-python -c "import secrets; print(secrets.token_urlsafe(64))"
-umask 077
-printf 'SECRET_KEY=%s\n' 'COLE_A_CHAVE_GERADA_AQUI' > ~/JapaCar/.env
-```
+O script cria o virtualenv (Python 3.12, ou 3.13 se for o disponível), instala as dependências,
+gera a `SECRET_KEY` num `.env` com permissão `600`, cria `data/` e `uploads/`, gera o WSGI já com o
+seu login e cria o usuário `admin` com uma senha aleatória forte — **anote a senha que ele imprime**
+e troque depois com `flask usuario-senha admin`.
 
 ### 2. Web app
 
-No **Web Tab** → *Add a new web app* → **Manual configuration** → **Python 3.12**:
+Se o `$API_TOKEN` estiver disponível (padrão nas contas atuais), o script cria o web app, aponta o
+virtualenv, registra os estáticos, instala o WSGI e recarrega sozinho — não há mais nada a fazer. O
+que ele configura, caso você precise conferir (ou configurar à mão num Web Tab → *Manual
+configuration* → **Python 3.12**):
 
 1. **Virtualenv**: `/home/SEU_USUARIO/.virtualenvs/japacar`.
 2. **Static files** (desvia os estáticos do Flask, economizando CPU):
@@ -592,11 +592,17 @@ No **Web Tab** → *Add a new web app* → **Manual configuration** → **Python
    | `/img/` | `/home/SEU_USUARIO/JapaCar/app/static/img/` |
 
 3. **WSGI configuration file** (link no topo do Web Tab): apague o exemplo e cole o conteúdo de
-   `deploy/pythonanywhere_wsgi.py`, trocando `USUARIO = "SEU_USUARIO"` pelo seu login.
+   `deploy/wsgi_config_pa.py` (gerado pelo script, já com o seu login).
 4. Clique em **Reload**.
 
 > Não mapeie `/uploads/`: essas fotos passam pelo Flask para exigir login. Mapear o diretório
 > `uploads/` como estático tornaria as fotos de lataria e interior **públicas**.
+
+### 3. Primeiro acesso
+
+Acesse `https://SEU_USUARIO.pythonanywhere.com` e entre com o usuário `admin` e a senha gerada pelo
+script. No Web Tab, clique em **Run until 3 months from today** para o app não expirar por
+inatividade.
 
 ### 3. Primeiro usuário
 
@@ -692,6 +698,10 @@ flask --app run.py usuario-senha --login admin
 
 ## Changelog recente
 
+- **v1.6** — **Setup automático no PythonAnywhere**: `deploy/pythonanywhere_setup.sh` faz todo o
+  provisionamento pelo console (virtualenv, dependências, `.env` com `SECRET_KEY`, diretórios,
+  usuário admin) e configura o web app pela API usando o `$API_TOKEN` já presente no console
+  (cria o app, virtualenv, estáticos, WSGI e reload). Deploy passa a ser **um comando**.
 - **v1.5** — **Deploy gratuito no PythonAnywhere**: artefato `deploy/pythonanywhere_wsgi.py`
   (configura produção, lê `SECRET_KEY` de `.env` privado e usa disco persistente) e passo a passo
   no README. Sem alteração na lógica do app; alternativa sem cartão ao Docker + Caddy.
