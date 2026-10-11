@@ -3,7 +3,8 @@
 @section('titulo', 'Orçamento #'.$orcamento->id)
 
 @section('conteudo')
-<div class="d-flex align-items-center mb-2">
+<div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+    <div class="d-flex align-items-center">
     <a href="{{ route('atendimentos.show', $orcamento->atendimento) }}" class="btn btn-sm btn-outline-secondary me-2 no-print">
         <i class="bi bi-arrow-left"></i>
     </a>
@@ -17,6 +18,10 @@
         };
     @endphp
     <span class="badge badge-status ms-2 {{ $classeStatus }}">{{ $orcamento->statusDescricao() }}</span>
+    </div>
+    <a href="{{ route('orcamentos.pdf', $orcamento) }}" class="btn btn-sm btn-japacar no-print">
+        <i class="bi bi-file-earmark-pdf me-1"></i> Baixar PDF
+    </a>
 </div>
 <p class="page-subtitle">
     {{ $orcamento->atendimento->veiculo->placa }} - {{ $orcamento->atendimento->veiculo->modelo }} {{ $orcamento->atendimento->veiculo->marca }} ({{ $orcamento->atendimento->veiculo->cliente->nome }})

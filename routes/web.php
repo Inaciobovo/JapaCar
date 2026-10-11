@@ -68,6 +68,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/novo', [OrcamentoController::class, 'create'])->name('create');
         Route::post('/', [OrcamentoController::class, 'store'])->name('store');
         Route::get('/{orcamento}', [OrcamentoController::class, 'show'])->name('show');
+        Route::get('/{orcamento}/pdf', [OrcamentoController::class, 'pdf'])->name('pdf');
         Route::post('/{orcamento}/itens', [OrcamentoController::class, 'addItem'])->name('itens.store');
         Route::post('/itens/{item}/remover', [OrcamentoController::class, 'removeItem'])->name('itens.destroy');
         Route::post('/{orcamento}/pagamento', [OrcamentoController::class, 'registrarPagamento'])->name('pagamento');

@@ -15,20 +15,28 @@
 
 <div class="quick-actions">
     <a href="{{ route('checklists.create') }}" class="quick-action">
-        <span class="qa-icon"><i class="bi bi-clipboard-check"></i></span>
+        <span class="qa-icon green"><i class="bi bi-clipboard-check"></i></span>
         <span class="qa-label">Novo Checklist</span>
     </a>
-    <a href="{{ route('atendimentos.index') }}" class="quick-action">
+    <a href="{{ route('atendimentos.create') }}" class="quick-action">
         <span class="qa-icon blue"><i class="bi bi-tools"></i></span>
+        <span class="qa-label">Novo Atendimento</span>
+    </a>
+    <a href="{{ route('clientes.create') }}" class="quick-action">
+        <span class="qa-icon purple"><i class="bi bi-person-plus"></i></span>
+        <span class="qa-label">Novo Cliente</span>
+    </a>
+    <a href="{{ route('veiculos.create') }}" class="quick-action">
+        <span class="qa-icon teal"><i class="bi bi-car-front"></i></span>
+        <span class="qa-label">Novo Veículo</span>
+    </a>
+    <a href="{{ route('atendimentos.index') }}" class="quick-action">
+        <span class="qa-icon indigo"><i class="bi bi-wrench-adjustable"></i></span>
         <span class="qa-label">Painel de Serviços</span>
     </a>
     <a href="{{ route('orcamentos.index') }}" class="quick-action">
         <span class="qa-icon orange"><i class="bi bi-file-earmark-text"></i></span>
         <span class="qa-label">Orçamentos</span>
-    </a>
-    <a href="{{ route('clientes.create') }}" class="quick-action">
-        <span class="qa-icon purple"><i class="bi bi-person-plus"></i></span>
-        <span class="qa-label">Novo Cliente</span>
     </a>
 </div>
 

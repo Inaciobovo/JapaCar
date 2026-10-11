@@ -81,6 +81,36 @@
         });
     }
 
+    // Detecta o tamanho real da tela e ajusta o layout (mobile x desktop)
+    function initDeviceClass() {
+        const BREAKPOINT = 992;
+        const query = '(max-width: ' + (BREAKPOINT - 1) + 'px)';
+        const mq = window.matchMedia ? window.matchMedia(query) : null;
+
+        function apply() {
+            const body = document.body;
+            if (!body) return;
+            const isMobile = mq ? mq.matches : window.innerWidth < BREAKPOINT;
+            body.classList.toggle('device-mobile', isMobile);
+            body.classList.toggle('device-desktop', !isMobile);
+            document.body.setAttribute('data-device', isMobile ? 'mobile' : 'desktop');
+        }
+
+        apply();
+
+        if (mq && mq.addEventListener) {
+            mq.addEventListener('change', apply);
+        } else if (mq && mq.addListener) {
+            mq.addListener(apply);
+        } else {
+            window.addEventListener('resize', apply, { passive: true });
+        }
+
+        window.addEventListener('orientationchange', function () {
+            setTimeout(apply, 150);
+        });
+    }
+
     // Menu drawer (mobile)
     function initDrawer() {
         const drawer = document.getElementById('navDrawer');
@@ -182,6 +212,7 @@
             });
         });
 
+        initDeviceClass();
         initDrawer();
         initBackToTop();
         initPasswordToggles();

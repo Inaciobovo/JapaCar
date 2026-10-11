@@ -1,6 +1,13 @@
 <?php
 
 return [
+    'oficina' => [
+        'nome' => env('OFICINA_NOME', 'JAPACAR'),
+        'subtitulo' => env('OFICINA_SUBTITULO', 'Oficina Mecânica'),
+        'telefone' => env('OFICINA_TELEFONE', ''),
+        'endereco' => env('OFICINA_ENDERECO', ''),
+    ],
+
     'perfis' => [
         'ADMIN' => 'Administrador',
         'MECANICO' => 'Mecânico',

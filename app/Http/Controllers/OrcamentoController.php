@@ -5,7 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Atendimento;
 use App\Models\ItemServico;
 use App\Models\Orcamento;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use Illuminate\Validation\Rule;
 
 class OrcamentoController extends Controller
@@ -60,6 +63,30 @@ class OrcamentoController extends Controller
         $orcamento->load(['atendimento.veiculo.cliente', 'itens']);
 
         return view('orcamentos.show', compact('orcamento'));
+    }
+
+    public function pdf(Orcamento $orcamento)
+    {
+        $orcamento->load(['atendimento.veiculo.cliente', 'itens']);
+
+        $fontDir = storage_path('app/dompdf');
+        File::ensureDirectoryExists($fontDir);
+
+        $options = new Options;
+        $options->set('isRemoteEnabled', false);
+        $options->set('isHtml5ParserEnabled', true);
+        $options->setFontDir($fontDir);
+        $options->setFontCache($fontDir);
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml(view('orcamentos.pdf', compact('orcamento'))->render(), 'UTF-8');
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        return response($dompdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="orcamento-'.$orcamento->id.'.pdf"',
+        ]);
     }
 
     public function addItem(Request $request, Orcamento $orcamento)

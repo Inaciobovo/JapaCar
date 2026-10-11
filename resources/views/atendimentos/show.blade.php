@@ -81,7 +81,12 @@
                             {{ $orcamento->statusPagamentoDescricao() }}
                         </span>
                     </div>
-                    <a href="{{ route('orcamentos.show', $orcamento) }}" class="btn btn-sm btn-outline-secondary">Abrir</a>
+                    <div class="d-flex gap-1">
+                        <a href="{{ route('orcamentos.show', $orcamento) }}" class="btn btn-sm btn-outline-secondary">Abrir</a>
+                        <a href="{{ route('orcamentos.pdf', $orcamento) }}" class="btn btn-sm btn-outline-danger" title="Baixar PDF">
+                            <i class="bi bi-file-earmark-pdf"></i>
+                        </a>
+                    </div>
                 </div>
             @empty
                 <p class="text-muted small mb-3">Nenhum orçamento vinculado a este serviço.</p>

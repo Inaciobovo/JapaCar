@@ -21,8 +21,8 @@
     </button>
 </form>
 
-@if (! $isMobile && $clientes->isNotEmpty())
-    <div class="table-responsive">
+@if ($clientes->isNotEmpty())
+    <div class="table-responsive d-none d-lg-block">
         <table class="table table-hover">
             <thead>
             <tr>
@@ -66,8 +66,8 @@
     </div>
 @endif
 
-@if ($isMobile && $clientes->isNotEmpty())
-    <div class="list-cards">
+@if ($clientes->isNotEmpty())
+    <div class="list-cards d-lg-none">
         @foreach ($clientes as $cliente)
             <div class="list-card">
                 <div class="lc-top">

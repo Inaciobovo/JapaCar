@@ -421,14 +421,37 @@ body.device-mobile .bottom-nav {
 /* ===== Main content ===== */
 body.device-mobile .app-main {
     padding: 14px 14px 92px;
-    max-width: 1080px;
-    margin: 0 auto;
+    width: 100%;
 }
 
 body.device-desktop .app-main {
-    padding: 24px 30px 60px;
-    max-width: 1150px;
-    margin: 0 auto;
+    padding: 26px clamp(22px, 2.4vw, 48px) 56px;
+    width: 100%;
+}
+
+/* Telas grandes: aproveita melhor a largura e aumenta a escala */
+@media (min-width: 1400px) {
+    body.device-desktop .stat-card {
+        padding: 20px 22px;
+    }
+
+    body.device-desktop .stat-card .stat-value {
+        font-size: 2rem;
+    }
+
+    body.device-desktop .quick-action {
+        padding: 20px 16px;
+    }
+
+    body.device-desktop .quick-action .qa-icon {
+        width: 52px;
+        height: 52px;
+        font-size: 1.5rem;
+    }
+
+    body.device-desktop .quick-action .qa-label {
+        font-size: 0.9rem;
+    }
 }
 
 .page-title {
@@ -768,7 +791,7 @@ body.device-desktop .stat-card:hover { transform: translateY(-2px); }
     margin-bottom: 20px;
 }
 
-body.device-desktop .quick-actions { grid-template-columns: repeat(4, 1fr); }
+body.device-desktop .quick-actions { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 
 .quick-action {
     background: #fff;
@@ -813,6 +836,8 @@ body.device-desktop .quick-actions { grid-template-columns: repeat(4, 1fr); }
 .quick-action .qa-icon.blue { background: rgba(23, 162, 184, 0.12); color: var(--japacar-info); }
 .quick-action .qa-icon.orange { background: rgba(255, 193, 7, 0.16); color: #d19d00; }
 .quick-action .qa-icon.purple { background: rgba(87, 75, 209, 0.12); color: #574bd1; }
+.quick-action .qa-icon.teal { background: rgba(20, 184, 166, 0.12); color: #0d9488; }
+.quick-action .qa-icon.indigo { background: rgba(79, 70, 229, 0.12); color: #4f46e5; }
 
 /* ===== Forms ===== */
 .form-label-custom {
@@ -1068,6 +1093,64 @@ body.device-desktop .back-to-top { bottom: 28px; }
 }
 
 /* Ajustes para telas muito estreitas */
+/* ===== Adaptação por tamanho de tela (vale mesmo sem JS) ===== */
+@media (max-width: 991.98px) {
+    body.device-desktop {
+        margin-left: 0;
+    }
+
+    body.device-desktop .app-sidebar {
+        display: none;
+    }
+
+    body.device-desktop .app-header {
+        display: flex;
+    }
+
+    body.device-desktop .app-main {
+        padding: 14px 14px 80px;
+    }
+
+    body.device-desktop .bottom-nav {
+        display: flex;
+    }
+
+    body.device-desktop .back-to-top {
+        bottom: 78px;
+    }
+
+    body.device-desktop .quick-actions {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
 @media (min-width: 992px) {
-    body.device-mobile .app-sidebar { display: none; }
+    body.device-mobile {
+        margin-left: 235px;
+    }
+
+    body.device-mobile .app-sidebar {
+        display: flex;
+    }
+
+    body.device-mobile .app-header {
+        display: none;
+    }
+
+    body.device-mobile .bottom-nav {
+        display: none;
+    }
+
+    body.device-mobile .app-main {
+        padding: 26px clamp(22px, 2.4vw, 48px) 56px;
+        width: 100%;
+    }
+
+    body.device-mobile .quick-actions {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+
+    body.device-mobile .back-to-top {
+        bottom: 28px;
+    }
 }

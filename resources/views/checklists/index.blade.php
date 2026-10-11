@@ -32,8 +32,8 @@
     </div>
 </div>
 
-@if (! $isMobile && $checklists->isNotEmpty())
-    <div class="table-responsive">
+@if ($checklists->isNotEmpty())
+    <div class="table-responsive d-none d-lg-block">
         <table class="table table-hover" id="tabela-checklists">
             <thead>
             <tr>
@@ -70,8 +70,8 @@
     </div>
 @endif
 
-@if ($isMobile && $checklists->isNotEmpty())
-    <div class="list-cards" id="cards-checklists">
+@if ($checklists->isNotEmpty())
+    <div class="list-cards d-lg-none" id="cards-checklists">
         @foreach ($checklists as $checklist)
             <div class="list-card" data-placa="{{ $checklist->veiculo->placa }}"
                  data-responsavel="{{ $checklist->responsavel }}"

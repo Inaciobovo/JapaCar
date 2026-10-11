@@ -29,8 +29,8 @@
     };
 @endphp
 
-@if (! $isMobile && $orcamentos->isNotEmpty())
-    <div class="table-responsive">
+@if ($orcamentos->isNotEmpty())
+    <div class="table-responsive d-none d-lg-block">
         <table class="table table-hover">
             <thead>
             <tr>
@@ -59,6 +59,9 @@
                         <a href="{{ route('orcamentos.show', $orcamento) }}" class="btn btn-sm btn-outline-secondary" title="Abrir">
                             <i class="bi bi-eye"></i>
                         </a>
+                        <a href="{{ route('orcamentos.pdf', $orcamento) }}" class="btn btn-sm btn-outline-danger" title="Baixar PDF">
+                            <i class="bi bi-file-earmark-pdf"></i>
+                        </a>
                     </td>
                 </tr>
             @endforeach
@@ -67,8 +70,8 @@
     </div>
 @endif
 
-@if ($isMobile && $orcamentos->isNotEmpty())
-    <div class="list-cards">
+@if ($orcamentos->isNotEmpty())
+    <div class="list-cards d-lg-none">
         @foreach ($orcamentos as $orcamento)
             <div class="list-card">
                 <div class="lc-top">
@@ -89,6 +92,9 @@
                 <div class="lc-actions">
                     <a href="{{ route('orcamentos.show', $orcamento) }}" class="btn btn-sm btn-outline-secondary">
                         <i class="bi bi-eye me-1"></i> Abrir
+                    </a>
+                    <a href="{{ route('orcamentos.pdf', $orcamento) }}" class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-file-earmark-pdf me-1"></i> PDF
                     </a>
                 </div>
             </div>
