@@ -1,6 +1,0 @@
-# Dependências só de desenvolvimento. Não entram na imagem de produção.
--r requirements.txt
-pytest==9.1.1
-playwright==1.63.0
-pip-audit==2.9.0
-bandit==1.9.4

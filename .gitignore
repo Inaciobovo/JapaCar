@@ -1,27 +1,30 @@
-# JAPACAR
-*.db
-*.db-journal
-*.db-wal
-*.db-shm
-uploads/
-data/
-backups/
-scripts/.backup-credentials
-# Chave publica de destino do backup. Publica, mas nao versionar junto.
-scripts/.backup-recipient
-# Chave PRIVADA de decrypt do backup. Se isto for commitado, o backup
-# criptografado deixa de proteger o que quer que seja.
-*backup-key*.txt
-*.age.key
-chaves/
-# Contem a SECRET_KEY de producao. Nunca versionar.
-.env
-# Gerado pelo deploy/pythonanywhere_setup.sh (ja com o usuario preenchido).
-deploy/wsgi_config_pa.py
-.DS_Store
-.idea/
-__pycache__/
 *.log
-.venv/
-.pytest_cache/
-smoke_cookies.txt
+.DS_Store
+.env
+.env.backup
+.env.production
+.phpactor.json
+.phpunit.result.cache
+/.codex
+/.cursor/
+/.idea
+/.nova
+/.phpunit.cache
+/.vscode
+/.zed
+/auth.json
+/node_modules
+/public/build
+/public/fonts-manifest.dev.json
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+/storage/app/private/uploads
+/vendor
+/database/*.sqlite
+/database/*.sqlite-journal
+_ide_helper.php
+Homestead.json
+Homestead.yaml
+Thumbs.db

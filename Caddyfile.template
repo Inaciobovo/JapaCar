@@ -1,7 +1,0 @@
-# Template do Caddy. O deploy substitui __DOMAIN__ pelo subdominio DuckDNS.
-# HTTPS automatico via Let's Encrypt (Caddy emite e renova o certificado).
-__DOMAIN__ {
-    encode gzip
-
-    reverse_proxy app:8080
-}
