@@ -1,29 +1,43 @@
 @extends('layouts.app')
 
-@section('titulo', 'Alterar senha')
+@section('titulo', 'Alterar Senha')
 
 @section('conteudo')
-<h1 class="h3 mb-4">Alterar senha</h1>
-
-<div class="card p-4" style="max-width: 520px;">
-    <form method="POST" action="{{ route('perfil.senha.update') }}">
-        @csrf
-        @method('PUT')
-        <div class="mb-3">
-            <label class="form-label">Senha atual</label>
-            <input class="form-control" type="password" name="senha_atual" required>
-            @error('senha_atual')<div class="text-danger small">{{ $message }}</div>@enderror
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Nova senha</label>
-            <input class="form-control" type="password" name="senha" required>
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Confirmar nova senha</label>
-            <input class="form-control" type="password" name="senha_confirmation" required>
-            <div class="form-text">Mínimo de 8 caracteres.</div>
-        </div>
-        <button class="btn btn-dark" type="submit">Salvar</button>
-    </form>
+<div class="d-flex align-items-center mb-2">
+    <a href="{{ route('atendimentos.index') }}" class="btn btn-sm btn-outline-secondary me-2 no-print">
+        <i class="bi bi-arrow-left"></i>
+    </a>
+    <h1 class="page-title mb-0">Alterar Senha</h1>
 </div>
+<p class="page-subtitle">Defina uma nova senha de acesso ao sistema</p>
+
+@include('fragments.alerts')
+
+<form action="{{ route('perfil.senha.update') }}" method="post" class="form-card">
+    @csrf
+    @method('PUT')
+
+    <div class="mb-3">
+        <label class="form-label-custom">Senha atual *</label>
+        <input type="password" name="senha_atual" class="form-control" required autocomplete="current-password">
+    </div>
+    <div class="mb-3">
+        <label class="form-label-custom">Nova senha *</label>
+        <input type="password" name="senha" class="form-control" required autocomplete="new-password">
+        <div class="form-text">Mínimo de 8 caracteres.</div>
+    </div>
+    <div class="mb-3">
+        <label class="form-label-custom">Confirmar nova senha *</label>
+        <input type="password" name="senha_confirmation" class="form-control" required autocomplete="new-password">
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn btn-japacar">
+            <i class="bi bi-check-lg me-1"></i> Salvar senha
+        </button>
+        <a href="{{ route('atendimentos.index') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-x-lg me-1"></i> Cancelar
+        </a>
+    </div>
+</form>
 @endsection

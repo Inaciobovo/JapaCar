@@ -1,44 +1,56 @@
 @extends('layouts.app')
 
-@section('titulo', $cliente->exists ? 'Editar cliente' : 'Novo cliente')
+@section('titulo', $cliente->exists ? 'Editar Cliente' : 'Novo Cliente')
 
 @section('conteudo')
-<h1 class="h3 mb-4">{{ $cliente->exists ? 'Editar cliente' : 'Novo cliente' }}</h1>
+<div class="d-flex align-items-center mb-2">
+    <a href="{{ route('clientes.index') }}" class="btn btn-sm btn-outline-secondary me-2 no-print">
+        <i class="bi bi-arrow-left"></i>
+    </a>
+    <h1 class="page-title">{{ $cliente->exists ? 'Editar Cliente' : 'Novo Cliente' }}</h1>
+</div>
+<p class="page-subtitle">Preencha os dados do cliente</p>
 
-<form method="POST" action="{{ $cliente->exists ? route('clientes.update', $cliente) : route('clientes.store') }}">
+@include('fragments.alerts')
+
+<form action="{{ $cliente->exists ? route('clientes.update', $cliente) : route('clientes.store') }}"
+      method="post" class="form-card">
     @csrf
     @if ($cliente->exists)
         @method('PUT')
     @endif
 
-    <div class="card p-4">
-        <div class="row g-3">
-            <div class="col-md-6">
-                <label class="form-label">Nome *</label>
-                <input class="form-control" name="nome" value="{{ old('nome', $cliente->nome) }}" required>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">CPF</label>
-                <input class="form-control" name="cpf" value="{{ old('cpf', $cliente->cpf) }}">
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Telefone</label>
-                <input class="form-control" name="telefone" value="{{ old('telefone', $cliente->telefone) }}">
-            </div>
-            <div class="col-md-6">
-                <label class="form-label">E-mail</label>
-                <input class="form-control" type="email" name="email" value="{{ old('email', $cliente->email) }}">
-            </div>
-            <div class="col-md-6">
-                <label class="form-label">Endereço</label>
-                <input class="form-control" name="endereco" value="{{ old('endereco', $cliente->endereco) }}">
-            </div>
+    <div class="mb-3">
+        <label class="form-label-custom">Nome completo *</label>
+        <input type="text" name="nome" value="{{ old('nome', $cliente->nome) }}" class="form-control" required maxlength="255"
+               placeholder="Nome do cliente">
+    </div>
+
+    <div class="row">
+        <div class="col-12 col-md-5 mb-3">
+            <label class="form-label-custom">CPF</label>
+            <input type="text" name="cpf" value="{{ old('cpf', $cliente->cpf) }}" class="form-control" data-mask="cpf"
+                   maxlength="14" placeholder="000.000.000-00">
+        </div>
+        <div class="col-12 col-md-7 mb-3">
+            <label class="form-label-custom">Telefone</label>
+            <input type="text" name="telefone" value="{{ old('telefone', $cliente->telefone) }}" class="form-control"
+                   data-mask="telefone" maxlength="15" placeholder="(00) 00000-0000">
         </div>
     </div>
 
-    <div class="mt-3">
-        <button class="btn btn-dark" type="submit">Salvar</button>
-        <a class="btn btn-outline-secondary" href="{{ route('clientes.index') }}">Cancelar</a>
+    <div class="mb-3">
+        <label class="form-label-custom">E-mail</label>
+        <input type="email" name="email" value="{{ old('email', $cliente->email) }}" class="form-control"
+               maxlength="255" placeholder="email@exemplo.com">
     </div>
+
+    <div class="mb-3">
+        <label class="form-label-custom">Endereço</label>
+        <input type="text" name="endereco" value="{{ old('endereco', $cliente->endereco) }}" class="form-control"
+               maxlength="255" placeholder="Rua, número, bairro, cidade">
+    </div>
+
+    @include('fragments.form-actions', ['actionLabel' => 'Salvar cliente', 'cancelarUrl' => route('clientes.index')])
 </form>
 @endsection

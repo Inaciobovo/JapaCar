@@ -39,8 +39,15 @@ class ChecklistController extends Controller
         $this->salvarFotos($request, $checklist);
 
         return redirect()
-            ->route('veiculos.show', $checklist->veiculo_id)
+            ->route('checklists.show', $checklist)
             ->with('status', 'Checklist registrado.');
+    }
+
+    public function show(ChecklistEntrada $checklist)
+    {
+        $checklist->load(['veiculo.cliente', 'fotos']);
+
+        return view('checklists.show', compact('checklist'));
     }
 
     public function edit(ChecklistEntrada $checklist)
@@ -57,7 +64,7 @@ class ChecklistController extends Controller
         $this->salvarFotos($request, $checklist);
 
         return redirect()
-            ->route('veiculos.show', $checklist->veiculo_id)
+            ->route('checklists.show', $checklist)
             ->with('status', 'Checklist atualizado.');
     }
 
@@ -110,14 +117,18 @@ class ChecklistController extends Controller
      */
     private function validados(Request $request): array
     {
-        return $request->validate([
+        $dados = $request->validate([
             'veiculo_id' => ['required', 'integer', 'exists:veiculos,id'],
-            'data_entrada' => ['required', 'date'],
+            'data_entrada' => ['nullable', 'date'],
             'quilometragem' => ['nullable', 'integer', 'min:0'],
             'nivel_combustivel' => ['nullable', Rule::in(array_keys(config('japacar.nivel_combustivel')))],
             'condicoes_lataria' => ['nullable', 'string', 'max:2000'],
             'observacoes_gerais' => ['nullable', 'string', 'max:2000'],
             'responsavel' => ['nullable', 'string', 'max:255'],
         ]);
+
+        $dados['data_entrada'] ??= now();
+
+        return $dados;
     }
 }

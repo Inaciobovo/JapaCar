@@ -1,40 +1,49 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Entrar · JAPACAR</title>
+    <title>JAPACAR - Login</title>
     <link rel="stylesheet" href="{{ asset('vendor/bootstrap/css/bootstrap.min.css') }}">
-    <style>body { background: #212529; }</style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="{{ asset('css/style.css') }}">
 </head>
-<body class="d-flex align-items-center" style="min-height: 100vh;">
-<div class="container" style="max-width: 420px;">
-    <div class="card p-4">
-        <h1 class="h4 mb-1 text-center">JAPACAR</h1>
-        <p class="text-muted text-center mb-4">Gestão de oficina</p>
+<body class="login-page">
+<div class="login-wrapper">
+    <div class="login-card">
+        <div class="login-logo">JP</div>
+        <h1>JAPACAR</h1>
+        <p class="subtitle">Sistema de gestão da oficina</p>
 
         @if ($errors->any())
-            <div class="alert alert-danger">{{ $errors->first() }}</div>
+            <div class="alert alert-danger" role="alert">{{ $errors->first() }}</div>
         @endif
 
-        <form method="POST" action="{{ route('login') }}">
+        <form action="{{ route('login') }}" method="post">
             @csrf
             <div class="mb-3">
-                <label class="form-label" for="login">Login</label>
-                <input class="form-control" id="login" name="login" value="{{ old('login') }}" autofocus required>
+                <label for="login" class="form-label-custom">Usuário</label>
+                <input type="text" class="form-control" id="login" name="login" value="{{ old('login') }}"
+                       autofocus required placeholder="Digite seu usuário" autocomplete="username">
             </div>
-            <div class="mb-3">
-                <label class="form-label" for="password">Senha</label>
-                <input class="form-control" type="password" id="password" name="password" required>
+            <div class="mb-4">
+                <label for="password" class="form-label-custom">Senha</label>
+                <div class="input-group position-relative">
+                    <input type="password" class="form-control" id="password" name="password" required
+                           placeholder="Digite sua senha" autocomplete="current-password">
+                    <button type="button" class="password-toggle" id="passwordToggle"
+                            data-password-toggle="password" aria-label="Mostrar senha">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
             </div>
-            <div class="form-check mb-3">
-                <input class="form-check-input" type="checkbox" id="remember" name="remember" value="1">
-                <label class="form-check-label" for="remember">Manter conectado</label>
-            </div>
-            <button class="btn btn-dark w-100" type="submit">Entrar</button>
+            <button type="submit" class="login-btn">
+                <i class="bi bi-box-arrow-in-right me-1"></i> Entrar
+            </button>
         </form>
     </div>
 </div>
 <script src="{{ asset('vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+<script src="{{ asset('js/app.js') }}"></script>
 </body>
 </html>

@@ -47,6 +47,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [ChecklistController::class, 'index'])->name('index');
         Route::get('/novo', [ChecklistController::class, 'create'])->name('create');
         Route::post('/', [ChecklistController::class, 'store'])->name('store');
+        Route::get('/{checklist}', [ChecklistController::class, 'show'])->name('show');
         Route::get('/{checklist}/editar', [ChecklistController::class, 'edit'])->name('edit');
         Route::put('/{checklist}', [ChecklistController::class, 'update'])->name('update');
         Route::post('/{checklist}/fotos', [ChecklistController::class, 'addFoto'])->name('fotos.store');
@@ -63,6 +64,7 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::prefix('orcamentos')->name('orcamentos.')->group(function () {
+        Route::get('/', [OrcamentoController::class, 'index'])->name('index');
         Route::get('/novo', [OrcamentoController::class, 'create'])->name('create');
         Route::post('/', [OrcamentoController::class, 'store'])->name('store');
         Route::get('/{orcamento}', [OrcamentoController::class, 'show'])->name('show');

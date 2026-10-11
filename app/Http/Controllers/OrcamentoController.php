@@ -10,6 +10,19 @@ use Illuminate\Validation\Rule;
 
 class OrcamentoController extends Controller
 {
+    public function index(Request $request)
+    {
+        $status = $request->query('status');
+
+        $orcamentos = Orcamento::with('atendimento.veiculo.cliente')
+            ->when(in_array($status, ['PENDENTE', 'APROVADO', 'RECUSADO'], true), fn ($q) => $q->where('status', $status))
+            ->latest()
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('orcamentos.index', compact('orcamentos', 'status'));
+    }
+
     public function create(Request $request)
     {
         $atendimento = Atendimento::with('veiculo.cliente')->findOrFail($request->integer('atendimento_id'));

@@ -1,90 +1,95 @@
 @extends('layouts.app')
 
-@section('titulo', $checklist->exists ? 'Editar checklist' : 'Novo checklist')
+@section('titulo', $checklist->exists ? 'Editar Checklist' : 'Checklist de Entrada')
 
 @section('conteudo')
-<h1 class="h3 mb-4">{{ $checklist->exists ? 'Editar checklist' : 'Novo checklist' }}</h1>
+<div class="d-flex align-items-center mb-2">
+    <a href="{{ route('checklists.index') }}" class="btn btn-sm btn-outline-secondary me-2 no-print">
+        <i class="bi bi-arrow-left"></i>
+    </a>
+    <h1 class="page-title">{{ $checklist->exists ? 'Editar Checklist' : 'Checklist de Entrada' }}</h1>
+</div>
+<p class="page-subtitle">Registre as condições do veículo no momento da entrada</p>
 
-<form method="POST"
-      enctype="multipart/form-data"
-      action="{{ $checklist->exists ? route('checklists.update', $checklist) : route('checklists.store') }}">
+@include('fragments.alerts')
+
+<form action="{{ $checklist->exists ? route('checklists.update', $checklist) : route('checklists.store') }}"
+      method="post" enctype="multipart/form-data" class="form-card">
     @csrf
     @if ($checklist->exists)
         @method('PUT')
     @endif
 
-    <div class="card p-4">
-        <div class="row g-3">
-            <div class="col-md-6">
-                <label class="form-label">Veículo *</label>
-                <select class="form-select" name="veiculo_id" required>
-                    <option value="">Selecione…</option>
-                    @foreach ($veiculos as $veiculo)
-                        <option value="{{ $veiculo->id }}" @selected(old('veiculo_id', $checklist->veiculo_id) == $veiculo->id)>
-                            {{ $veiculo->placa }} — {{ $veiculo->marca }} {{ $veiculo->modelo }} ({{ $veiculo->cliente->nome }})
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Data de entrada *</label>
-                <input class="form-control" type="datetime-local" name="data_entrada"
-                       value="{{ old('data_entrada', $checklist->data_entrada?->format('Y-m-d\TH:i')) }}" required>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Quilometragem</label>
-                <input class="form-control" type="number" name="quilometragem"
-                       value="{{ old('quilometragem', $checklist->quilometragem) }}">
-            </div>
-            <div class="col-md-4">
-                <label class="form-label">Nível de combustível</label>
-                <select class="form-select" name="nivel_combustivel">
-                    <option value="">—</option>
-                    @foreach (config('japacar.nivel_combustivel') as $valor => $rotulo)
-                        <option value="{{ $valor }}" @selected(old('nivel_combustivel', $checklist->nivel_combustivel) == $valor)>
-                            {{ $rotulo }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="col-md-8">
-                <label class="form-label">Responsável</label>
-                <input class="form-control" name="responsavel" value="{{ old('responsavel', $checklist->responsavel) }}">
-            </div>
-            <div class="col-md-6">
-                <label class="form-label">Condições da lataria</label>
-                <textarea class="form-control" name="condicoes_lataria" rows="3">{{ old('condicoes_lataria', $checklist->condicoes_lataria) }}</textarea>
-            </div>
-            <div class="col-md-6">
-                <label class="form-label">Observações gerais</label>
-                <textarea class="form-control" name="observacoes_gerais" rows="3">{{ old('observacoes_gerais', $checklist->observacoes_gerais) }}</textarea>
-            </div>
-            <div class="col-12">
-                <label class="form-label">Fotos</label>
-                <input class="form-control" type="file" name="fotos[]" accept="image/*" multiple>
-                <div class="form-text">JPG, PNG ou WEBP, até 5&nbsp;MB cada.</div>
-            </div>
+    <div class="mb-3">
+        <label class="form-label-custom">Veículo *</label>
+        <select name="veiculo_id" class="form-select" required>
+            <option value="">Selecione o veículo...</option>
+            @foreach ($veiculos as $veiculo)
+                <option value="{{ $veiculo->id }}" @selected(old('veiculo_id', $checklist->veiculo_id) == $veiculo->id)>
+                    {{ $veiculo->placa }} - {{ $veiculo->modelo }} {{ $veiculo->marca }} ({{ $veiculo->cliente->nome }})
+                </option>
+            @endforeach
+        </select>
+    </div>
+
+    <div class="row">
+        <div class="col-6 col-md-4 mb-3">
+            <label class="form-label-custom">Quilometragem</label>
+            <input type="number" name="quilometragem" value="{{ old('quilometragem', $checklist->quilometragem) }}"
+                   class="form-control" min="0" placeholder="123456">
+        </div>
+        <div class="col-6 col-md-4 mb-3">
+            <label class="form-label-custom">Nível de combustível</label>
+            <select name="nivel_combustivel" class="form-select">
+                <option value="">Selecione...</option>
+                @foreach (config('japacar.nivel_combustivel') as $chave => $texto)
+                    <option value="{{ $chave }}" @selected(old('nivel_combustivel', $checklist->nivel_combustivel) == $chave)>{{ $texto }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="col-12 col-md-4 mb-3">
+            <label class="form-label-custom">Responsável *</label>
+            <input type="text" name="responsavel" value="{{ old('responsavel', $checklist->responsavel) }}"
+                   class="form-control" required maxlength="255" placeholder="Nome do mecânico/atendente">
         </div>
     </div>
 
-    <div class="mt-3">
-        <button class="btn btn-dark" type="submit">Salvar</button>
-        <a class="btn btn-outline-secondary" href="{{ route('checklists.index') }}">Cancelar</a>
+    <div class="mb-3">
+        <label class="form-label-custom">Condições da lataria</label>
+        <textarea name="condicoes_lataria" class="form-control" rows="3"
+                  placeholder="Descreva riscos, amassados, arranhões, etc.">{{ old('condicoes_lataria', $checklist->condicoes_lataria) }}</textarea>
     </div>
-</form>
 
-@if ($checklist->exists && $checklist->fotos->isNotEmpty())
-    <h2 class="h5 mt-4">Fotos atuais</h2>
-    <div class="d-flex gap-3 flex-wrap">
-        @foreach ($checklist->fotos as $foto)
-            <div class="text-center">
-                <img class="thumb d-block mb-1" src="{{ route('checklists.fotos.arquivo', $foto) }}" alt="Foto">
-                <form method="POST" action="{{ route('checklists.fotos.destroy', $foto) }}">
-                    @csrf
-                    <button class="btn btn-sm btn-outline-danger">Remover</button>
-                </form>
-            </div>
-        @endforeach
+    <div class="mb-3">
+        <label class="form-label-custom">Observações gerais</label>
+        <textarea name="observacoes_gerais" class="form-control" rows="3"
+                  placeholder="Outras observações relevantes">{{ old('observacoes_gerais', $checklist->observacoes_gerais) }}</textarea>
     </div>
-@endif
+
+    @if ($checklist->exists && $checklist->fotos->isNotEmpty())
+        <div class="mb-3">
+            <label class="form-label-custom">Fotos existentes</label>
+            <div class="photo-grid">
+                @foreach ($checklist->fotos as $foto)
+                    <div class="photo-item">
+                        <img src="{{ route('checklists.fotos.arquivo', $foto) }}" alt="Foto">
+                        <span class="remove-photo"
+                              onclick="document.getElementById('remove-foto-{{ $foto->id }}').submit(); return false;">&times;</span>
+                        <form id="remove-foto-{{ $foto->id }}" action="{{ route('checklists.fotos.destroy', $foto) }}" method="post">
+                            @csrf
+                        </form>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
+    <div class="mb-3">
+        <label class="form-label-custom">Adicionar fotos (até 5)</label>
+        <input type="file" name="fotos[]" class="form-control" accept="image/*" multiple data-max-count="5">
+        <div class="form-text">Selecione até 5 fotos. Na edição, as novas fotos são adicionadas às existentes.</div>
+    </div>
+
+    @include('fragments.form-actions', ['actionLabel' => 'Salvar checklist', 'cancelarUrl' => route('checklists.index')])
+</form>
 @endsection
