@@ -24,6 +24,7 @@
 /vendor
 /database/*.sqlite
 /database/*.sqlite-journal
+/deploy/infinityfree/*.zip
 _ide_helper.php
 Homestead.json
 Homestead.yaml

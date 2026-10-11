@@ -32,6 +32,7 @@
                 <span class="navbar-text text-light me-3">
                     {{ Auth::user()->nome }} · {{ Auth::user()->perfilDescricao() }}
                 </span>
+                <a class="btn btn-outline-light btn-sm me-2" href="{{ route('perfil.senha.edit') }}">Senha</a>
                 <form method="POST" action="{{ route('logout') }}" class="d-inline">
                     @csrf
                     <button class="btn btn-outline-light btn-sm" type="submit">Sair</button>

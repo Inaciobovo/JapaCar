@@ -6,6 +6,7 @@ use App\Http\Controllers\ChecklistController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OrcamentoController;
+use App\Http\Controllers\PerfilController;
 use App\Http\Controllers\VeiculoController;
 use Illuminate\Support\Facades\Route;
 
@@ -20,6 +21,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::get('/painel', [DashboardController::class, 'index'])->name('painel');
+
+    Route::get('/perfil/senha', [PerfilController::class, 'editSenha'])->name('perfil.senha.edit');
+    Route::put('/perfil/senha', [PerfilController::class, 'updateSenha'])->name('perfil.senha.update');
 
     Route::prefix('clientes')->name('clientes.')->group(function () {
         Route::get('/', [ClienteController::class, 'index'])->name('index');
