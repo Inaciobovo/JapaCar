@@ -23,18 +23,17 @@ rm -rf "$BUILD"/*
 echo ">> Copiando código-fonte (sem .git, vendor, node_modules, .env...)"
 rsync -a \
   --exclude='.git/' \
-  --exclude='node_modules/' \
-  --exclude='vendor/' \
-  --exclude='deploy/' \
+  --exclude='/node_modules/' \
+  --exclude='/vendor/' \
+  --exclude='/deploy/' \
   --exclude='.env' \
   --exclude='.env.*' \
   --exclude='database/database.sqlite' \
   --exclude='storage/app/private/uploads/' \
-  --exclude='storage/logs/*' \
+  --exclude='storage/logs/*.log' \
   --exclude='storage/framework/cache/data/*' \
-  --exclude='storage/framework/sessions/*' \
-  --exclude='storage/framework/views/*' \
-  --exclude='tests/' \
+  --exclude='storage/framework/views/*.php' \
+  --exclude='/tests/' \
   --exclude='phpunit.xml' \
   --exclude='.editorconfig' \
   --exclude='.npmrc' \
