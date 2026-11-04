@@ -208,6 +208,9 @@ body {
     padding: 4px 8px;
     border-radius: 8px;
     line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 .hamburger-btn:hover { color: var(--japacar-primary); }
 
@@ -359,6 +362,7 @@ body.device-desktop .app-sidebar .sidebar-footer {
 /* Device defaults (fallback mobile) */
 .app-sidebar { display: none; }
 .app-header { display: flex; }
+.hamburger-btn { display: inline-flex; }
 body.device-desktop .app-header { display: none; }
 
 /* ===== Bottom navigation (mobile) ===== */
@@ -1095,62 +1099,70 @@ body.device-desktop .back-to-top { bottom: 28px; }
 /* Ajustes para telas muito estreitas */
 /* ===== Adaptação por tamanho de tela (vale mesmo sem JS) ===== */
 @media (max-width: 991.98px) {
-    body.device-desktop {
+    body {
         margin-left: 0;
     }
 
-    body.device-desktop .app-sidebar {
+    .app-sidebar {
         display: none;
     }
 
-    body.device-desktop .app-header {
+    .app-header {
         display: flex;
     }
 
-    body.device-desktop .app-main {
+    .hamburger-btn {
+        display: inline-flex;
+    }
+
+    .app-main {
         padding: 14px 14px 80px;
     }
 
-    body.device-desktop .bottom-nav {
+    .bottom-nav {
         display: flex;
     }
 
-    body.device-desktop .back-to-top {
+    .back-to-top {
         bottom: 78px;
     }
 
-    body.device-desktop .quick-actions {
+    .quick-actions {
         grid-template-columns: repeat(2, 1fr);
     }
 }
 
 @media (min-width: 992px) {
-    body.device-mobile {
-        margin-left: 235px;
+    body {
+        margin-left: 0;
     }
 
-    body.device-mobile .app-sidebar {
+    .app-sidebar {
         display: flex;
     }
 
-    body.device-mobile .app-header {
+    .hamburger-btn {
         display: none;
     }
 
-    body.device-mobile .bottom-nav {
+    .app-header {
         display: none;
     }
 
-    body.device-mobile .app-main {
+    .bottom-nav {
+        display: none;
+    }
+
+    .app-main {
         padding: 26px clamp(22px, 2.4vw, 48px) 56px;
         width: 100%;
     }
 
-    body.device-mobile .quick-actions {
+    .quick-actions {
         grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     }
 
-    body.device-mobile .back-to-top {
+    .back-to-top {
         bottom: 28px;
     }
 }
